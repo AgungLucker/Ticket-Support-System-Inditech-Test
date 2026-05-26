@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Category;
+use App\Models\Label;
 use App\Models\Priority;
 use App\Models\Role;
 use App\Models\SlaRule;
@@ -67,6 +68,20 @@ class DatabaseSeeder extends Seeder
 
         foreach ($categories as $category) {
             Category::updateOrCreate(['slug' => $category['slug']], $category);
+        }
+
+        $labels = [
+            ['name' => 'Urgent', 'slug' => 'urgent', 'color' => '#ef4444'],
+            ['name' => 'Backend', 'slug' => 'backend', 'color' => '#3b82f6'],
+            ['name' => 'Frontend', 'slug' => 'frontend', 'color' => '#8b5cf6'],
+            ['name' => 'Database', 'slug' => 'database', 'color' => '#14b8a6'],
+            ['name' => 'Security', 'slug' => 'security', 'color' => '#f97316'],
+            ['name' => 'Needs Follow Up', 'slug' => 'needs-follow-up', 'color' => '#eab308'],
+            ['name' => 'Customer Waiting', 'slug' => 'customer-waiting', 'color' => '#64748b'],
+        ];
+
+        foreach ($labels as $label) {
+            Label::updateOrCreate(['slug' => $label['slug']], $label);
         }
 
         $supportTeam = Team::updateOrCreate(

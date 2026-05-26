@@ -21,6 +21,7 @@ class User extends Authenticatable
         'password',
         'role_id',
         'team_id',
+        'phone',
     ];
 
     protected $hidden = [
@@ -54,5 +55,30 @@ class User extends Authenticatable
     public function assignedTickets(): HasMany
     {
         return $this->hasMany(Ticket::class, 'assigned_agent_id');
+    }
+
+    public function hasRole(string $role): bool
+    {
+        return $this->role?->slug === $role;
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->hasRole('admin');
+    }
+
+    public function isSupervisor(): bool
+    {
+        return $this->hasRole('supervisor');
+    }
+
+    public function isAgent(): bool
+    {
+        return $this->hasRole('agent');
+    }
+
+    public function isCustomer(): bool
+    {
+        return $this->hasRole('customer');
     }
 }
