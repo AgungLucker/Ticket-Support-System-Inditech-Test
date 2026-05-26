@@ -17,8 +17,15 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->foreignId('role_id')->default(4)->constrained('roles')->restrictOnDelete();
+            $table->foreignId('team_id')->nullable()->constrained('teams')->nullOnDelete();
+            $table->string('phone')->nullable();
             $table->rememberToken();
             $table->timestamps();
+        });
+
+        Schema::table('teams', function (Blueprint $table) {
+            $table->foreign('supervisor_id')->references('id')->on('users')->nullOnDelete();
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
@@ -42,6 +49,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::table('teams', function (Blueprint $table) {
+            $table->dropForeign(['supervisor_id']);
+        });
+
         Schema::dropIfExists('users');
         Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
