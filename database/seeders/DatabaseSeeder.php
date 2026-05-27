@@ -132,5 +132,49 @@ class DatabaseSeeder extends Seeder
                 'team_id' => null,
             ],
         );
+
+        // ==========================================
+        // DUMMY DATA GENERATOR 
+        // ==========================================
+        
+        // Buat tambahan 10 customer dan 5 agent agar data bervariasi
+        User::factory(10)->customer()->create();
+        User::factory(5)->agent()->create(['team_id' => $supportTeam->id]);
+
+        $customers = User::where('role_id', Role::where('slug', 'customer')->value('id'))->get();
+        $agents = User::where('role_id', Role::where('slug', 'agent')->value('id'))->get();
+        $allUsers = $customers->merge($agents);
+
+        // Buat 50 Tiket Dummy
+        \App\Models\Ticket::factory(50)
+            ->recycle($customers) // Memastikan created_by adalah customer
+            ->create()
+            ->each(function ($ticket) use ($agents, $allUsers) {
+                
+                // Secara acak, berikan (*assign*) tiket ke agent tertentu
+                if (rand(1, 10) > 4) {
+                    $ticket->update([
+                        'status' => rand(1, 10) > 5 ? 'In Progress' : 'Assigned',
+                        'assigned_agent_id' => $agents->random()->id,
+                    ]);
+                }
+
+                // Berikan label acak pada tiket
+                $ticket->labels()->attach(
+                    \App\Models\Label::inRandomOrder()->take(rand(1, 3))->pluck('id')
+                );
+
+                // Tambahkan 1-4 komentar acak untuk tiap tiket
+                \App\Models\Comment::factory(rand(1, 4))
+                    ->recycle($ticket)
+                    ->recycle($allUsers)
+                    ->create();
+                
+                // Tambahkan 1-3 log aktivitas
+                \App\Models\ActivityLog::factory(rand(1, 3))
+                    ->recycle($ticket)
+                    ->recycle($allUsers)
+                    ->create();
+            });
     }
 }

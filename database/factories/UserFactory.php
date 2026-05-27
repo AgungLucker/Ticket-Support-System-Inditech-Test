@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -29,6 +30,12 @@ class UserFactory extends Factory
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
+            'role_id' => Role::firstOrCreate(
+                ['slug' => 'customer'],
+                ['name' => 'Customer', 'description' => 'Creates and tracks support tickets'],
+            )->id,
+            'team_id' => null,
+            'phone' => fake()->optional()->phoneNumber(),
             'remember_token' => Str::random(10),
         ];
     }
@@ -40,6 +47,46 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    public function admin(): static
+    {
+        return $this->state(fn () => [
+            'role_id' => Role::firstOrCreate(
+                ['slug' => 'admin'],
+                ['name' => 'Admin', 'description' => 'Full system administrator'],
+            )->id,
+        ]);
+    }
+
+    public function supervisor(): static
+    {
+        return $this->state(fn () => [
+            'role_id' => Role::firstOrCreate(
+                ['slug' => 'supervisor'],
+                ['name' => 'Supervisor', 'description' => 'Manages agents and ticket assignments'],
+            )->id,
+        ]);
+    }
+
+    public function agent(): static
+    {
+        return $this->state(fn () => [
+            'role_id' => Role::firstOrCreate(
+                ['slug' => 'agent'],
+                ['name' => 'Agent', 'description' => 'Handles assigned support tickets'],
+            )->id,
+        ]);
+    }
+
+    public function customer(): static
+    {
+        return $this->state(fn () => [
+            'role_id' => Role::firstOrCreate(
+                ['slug' => 'customer'],
+                ['name' => 'Customer', 'description' => 'Creates and tracks support tickets'],
+            )->id,
         ]);
     }
 }

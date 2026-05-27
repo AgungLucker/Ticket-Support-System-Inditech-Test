@@ -3,10 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SlaRule extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'priority_id',
         'response_time_hours',
