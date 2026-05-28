@@ -35,12 +35,12 @@ class Ticket extends Model
 
     public function priority(): BelongsTo
     {
-        return $this->belongsTo(Priority::class);
+        return $this->belongsTo(Priority::class)->withTrashed();
     }
 
     public function category(): BelongsTo
     {
-        return $this->belongsTo(Category::class);
+        return $this->belongsTo(Category::class)->withTrashed();
     }
 
     public function creator(): BelongsTo
