@@ -18,3 +18,10 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/auth.php';
+
+Route::middleware(['auth', 'can:access-admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::resource('categories', \App\Http\Controllers\Admin\CategoryController::class)->except(['create', 'show', 'edit']);
+    Route::resource('labels', \App\Http\Controllers\Admin\LabelController::class)->except(['create', 'show', 'edit']);
+    Route::resource('priorities', \App\Http\Controllers\Admin\PriorityController::class)->except(['create', 'show', 'edit']);
+    Route::resource('sla-rules', \App\Http\Controllers\Admin\SlaRuleController::class)->except(['create', 'show', 'edit']);
+});

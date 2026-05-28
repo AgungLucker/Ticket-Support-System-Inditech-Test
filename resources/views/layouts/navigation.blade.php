@@ -15,6 +15,39 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
+
+                    @can('access-admin')
+                    <!-- Master Data Dropdown -->
+                    <div class="hidden sm:flex sm:items-center sm:ms-6">
+                        <x-dropdown align="right" width="48">
+                            <x-slot name="trigger">
+                                <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
+                                    <div>Master Data</div>
+                                    <div class="ms-1">
+                                        <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
+                                </button>
+                            </x-slot>
+
+                            <x-slot name="content">
+                                <x-dropdown-link :href="route('admin.categories.index')">
+                                    {{ __('Categories') }}
+                                </x-dropdown-link>
+                                <x-dropdown-link :href="route('admin.labels.index')">
+                                    {{ __('Labels') }}
+                                </x-dropdown-link>
+                                <x-dropdown-link :href="route('admin.priorities.index')">
+                                    {{ __('Priorities') }}
+                                </x-dropdown-link>
+                                <x-dropdown-link :href="route('admin.sla-rules.index')">
+                                    {{ __('SLA Rules') }}
+                                </x-dropdown-link>
+                            </x-slot>
+                        </x-dropdown>
+                    </div>
+                    @endcan
                 </div>
             </div>
 
@@ -70,6 +103,24 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
+
+            @can('access-admin')
+            <div class="pt-2 pb-2">
+                <div class="px-4 font-medium text-sm text-gray-500">{{ __('Master Data') }}</div>
+                <x-responsive-nav-link :href="route('admin.categories.index')" :active="request()->routeIs('admin.categories.*')">
+                    {{ __('Categories') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.labels.index')" :active="request()->routeIs('admin.labels.*')">
+                    {{ __('Labels') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.priorities.index')" :active="request()->routeIs('admin.priorities.*')">
+                    {{ __('Priorities') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.sla-rules.index')" :active="request()->routeIs('admin.sla-rules.*')">
+                    {{ __('SLA Rules') }}
+                </x-responsive-nav-link>
+            </div>
+            @endcan
         </div>
 
         <!-- Responsive Settings Options -->
