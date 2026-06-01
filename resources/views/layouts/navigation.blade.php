@@ -15,6 +15,9 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('tickets.index')" :active="request()->routeIs('tickets.*')">
+                        {{ Auth::user()->isCustomer() ? __('Tiket Saya') : __('Semua Tiket') }}
+                    </x-nav-link>
 
                     @can('access-admin')
                     <!-- Master Data Dropdown -->
@@ -102,6 +105,9 @@
         <div class="pt-2 pb-3 space-y-1">
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('tickets.index')" :active="request()->routeIs('tickets.*')">
+                {{ Auth::user()->isCustomer() ? __('Tiket Saya') : __('Semua Tiket') }}
             </x-responsive-nav-link>
 
             @can('access-admin')

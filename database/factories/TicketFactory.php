@@ -13,8 +13,13 @@ class TicketFactory extends Factory
     {
         return [
             'ticket_number' => 'TCK-'.now()->year.'-'.str_pad((string) fake()->unique()->numberBetween(1, 999999), 6, '0', STR_PAD_LEFT),
-            'title' => fake()->sentence(4),
-            'description' => fake()->paragraph(),
+            'title' => fake()->randomElement([
+                'Internet mati total sejak pagi', 'Lampu modem berkedip merah (LOS)', 
+                'Koneksi sangat lambat', 'Tidak bisa login ke aplikasi pelanggan', 
+                'Tagihan bulan ini tidak sesuai', 'Lupa password wifi',
+                'Ingin upgrade kecepatan internet', 'Koneksi sering terputus tiba-tiba'
+            ]),
+            'description' => fake()->paragraph(3),
             'status' => fake()->randomElement(['Open', 'Assigned', 'In Progress', 'Waiting for Customer', 'Resolved', 'Closed', 'Reopened', 'Escalated']),
             'priority_id' => Priority::factory(),
             'category_id' => Category::factory(),

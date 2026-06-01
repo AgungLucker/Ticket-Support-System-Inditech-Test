@@ -9,7 +9,7 @@ class PriorityFactory extends Factory
 {
     public function definition(): array
     {
-        $name = fake()->unique()->randomElement(['Low', 'Medium', 'High', 'Critical']).' '.fake()->unique()->numberBetween(100, 999);
+        $name = fake()->randomElement(['Low', 'Medium', 'High', 'Critical']).' '.fake()->unique()->numberBetween(1000, 9999);
 
         return [
             'name' => $name,

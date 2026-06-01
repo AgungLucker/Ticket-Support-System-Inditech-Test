@@ -144,10 +144,15 @@ class DatabaseSeeder extends Seeder
         $customers = User::where('role_id', Role::where('slug', 'customer')->value('id'))->get();
         $agents = User::where('role_id', Role::where('slug', 'agent')->value('id'))->get();
         $allUsers = $customers->merge($agents);
+        
+        $priorities = Priority::all();
+        $categories = Category::all();
 
         // Buat 50 Tiket Dummy
         \App\Models\Ticket::factory(50)
             ->recycle($customers) // Memastikan created_by adalah customer
+            ->recycle($priorities) // Menghindari duplikasi master priority
+            ->recycle($categories) // Menghindari duplikasi master category
             ->create()
             ->each(function ($ticket) use ($agents, $allUsers) {
                 
