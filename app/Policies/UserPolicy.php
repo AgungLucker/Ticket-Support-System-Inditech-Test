@@ -18,8 +18,7 @@ class UserPolicy
 
     public function view(User $user, User $model): bool
     {
-        return $user->id === $model->id
-            || ($user->isSupervisor() && $user->team_id !== null && $user->team_id === $model->team_id);
+        return false;
     }
 
     public function create(User $user): bool

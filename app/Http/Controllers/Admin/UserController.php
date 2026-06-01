@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -18,6 +19,8 @@ class UserController extends Controller
 {
     public function index(Request $request): View
     {
+        Gate::authorize('viewAny', User::class);
+
         $users = User::query()
             ->with(['role', 'team'])
             ->when($request->filled('search'), function ($query) use ($request) {
@@ -42,7 +45,10 @@ class UserController extends Controller
 
     public function store(StoreUserRequest $request): RedirectResponse
     {
+        Gate::authorize('create', User::class);
+
         $data = $this->normalizedData($request->validated());
+        
         $data['password'] = Hash::make($data['password']);
 
         User::create($data);
@@ -52,6 +58,8 @@ class UserController extends Controller
 
     public function update(UpdateUserRequest $request, User $user): RedirectResponse
     {
+        Gate::authorize('update', $user);
+
         $data = $this->normalizedData($request->validated());
 
         if ($request->user()->is($user) && (int) $data['role_id'] !== $user->role_id) {
@@ -73,9 +81,11 @@ class UserController extends Controller
 
     public function destroy(Request $request, User $user): RedirectResponse
     {
-        if ($request->user()->is($user)) {
+        Gate::authorize('delete', $user);
+
+        if ($user->id === $request->user()->id) {
             return redirect()->back()->withErrors([
-                'user' => 'Anda tidak dapat menghapus akun yang sedang digunakan.',
+                'user' => 'Anda tidak dapat menghapus akun Anda sendiri melalui halaman ini.',
             ]);
         }
 

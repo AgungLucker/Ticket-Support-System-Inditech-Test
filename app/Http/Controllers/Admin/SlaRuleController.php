@@ -3,14 +3,18 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreSlaRuleRequest;
+use App\Http\Requests\Admin\UpdateSlaRuleRequest;
 use App\Models\Priority;
 use App\Models\SlaRule;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class SlaRuleController extends Controller
 {
     public function index(Request $request)
     {
+        Gate::authorize('viewAny', SlaRule::class);
         $slaRules = SlaRule::query()
             ->with('priority')
             ->when($request->filled('search'), function ($query) use ($request) {
@@ -29,43 +33,28 @@ class SlaRuleController extends Controller
         return view('admin.sla_rules.index', compact('slaRules', 'priorities'));
     }
 
-    public function store(Request $request)
+    public function store(StoreSlaRuleRequest $request)
     {
-        $request->validate([
-            'priority_id' => 'required|exists:priorities,id|unique:sla_rules,priority_id',
-            'response_time_hours' => 'required|integer|min:1',
-            'resolution_time_hours' => 'required|integer|min:1|gte:response_time_hours',
-        ], [
-            'priority_id.required' => 'Prioritas wajib dipilih.',
-            'priority_id.unique' => 'Prioritas ini sudah memiliki aturan SLA.',
-            'response_time_hours.required' => 'Target Respon wajib diisi.',
-            'resolution_time_hours.required' => 'Target Penyelesaian wajib diisi.',
-            'resolution_time_hours.gte' => 'Target Penyelesaian tidak boleh lebih cepat (angkanya lebih kecil) dari Target Respon awal.',
-        ]);
+        Gate::authorize('create', SlaRule::class);
 
-        SlaRule::create($request->only(['priority_id', 'response_time_hours', 'resolution_time_hours']));
+        SlaRule::create($request->validated());
 
         return redirect()->back()->with('success', 'SLA Rule berhasil ditambahkan.');
     }
 
-    public function update(Request $request, SlaRule $slaRule)
+    public function update(UpdateSlaRuleRequest $request, SlaRule $slaRule)
     {
-        $request->validate([
-            'response_time_hours' => 'required|integer|min:1',
-            'resolution_time_hours' => 'required|integer|min:1|gte:response_time_hours',
-        ], [
-            'response_time_hours.required' => 'Target Respon wajib diisi.',
-            'resolution_time_hours.required' => 'Target Penyelesaian wajib diisi.',
-            'resolution_time_hours.gte' => 'Target Penyelesaian tidak boleh lebih cepat (angkanya lebih kecil) dari Target Respon awal.',
-        ]);
+        Gate::authorize('update', $slaRule);
 
-        $slaRule->update($request->only(['response_time_hours', 'resolution_time_hours']));
+        $slaRule->update($request->validated());
 
         return redirect()->back()->with('success', 'SLA Rule berhasil diperbarui.');
     }
 
     public function destroy(SlaRule $slaRule)
     {
+        Gate::authorize('delete', $slaRule);
+
         $slaRule->delete();
         return redirect()->back()->with('success', 'SLA Rule berhasil dihapus.');
     }

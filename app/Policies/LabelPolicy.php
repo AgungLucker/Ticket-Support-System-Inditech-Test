@@ -14,12 +14,12 @@ class LabelPolicy
 
     public function viewAny(User $user): bool
     {
-        return true;
+        return false;
     }
 
     public function view(User $user, Label $label): bool
     {
-        return true;
+        return false;
     }
 
     public function create(User $user): bool

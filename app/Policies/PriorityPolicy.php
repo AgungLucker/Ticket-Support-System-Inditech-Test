@@ -14,12 +14,12 @@ class PriorityPolicy
 
     public function viewAny(User $user): bool
     {
-        return true;
+        return false;
     }
 
     public function view(User $user, Priority $priority): bool
     {
-        return true;
+        return false;
     }
 
     public function create(User $user): bool
