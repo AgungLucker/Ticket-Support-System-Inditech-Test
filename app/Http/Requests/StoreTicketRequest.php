@@ -13,7 +13,7 @@ class StoreTicketRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
+        $rules = [
             'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
             'category_id' => ['required', 'exists:categories,id'],
@@ -21,6 +21,13 @@ class StoreTicketRequest extends FormRequest
             'attachments.*' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx', 'max:2048'],
             'attachments' => ['nullable', 'array', 'max:5'],
         ];
+
+        // Admin boleh pilih customer sebagai requester
+        if ($this->user()->isAdmin()) {
+            $rules['created_by'] = ['required', 'exists:users,id'];
+        }
+
+        return $rules;
     }
 
     public function messages(): array

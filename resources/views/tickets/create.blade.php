@@ -50,6 +50,23 @@
                             <p class="text-xs text-gray-500 mt-1">Pilih tingkat urgensi dengan bijak. Prioritas tinggi memiliki SLA yang lebih ketat.</p>
                         </div>
 
+                        {{-- Dropdown requester khusus Admin --}}
+                        @isset($customers)
+                        <div class="mb-4">
+                            <label for="created_by" class="block font-medium text-sm text-gray-700">Requester / Customer <span class="text-red-500">*</span></label>
+                            <select id="created_by" name="created_by" class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" required>
+                                <option value="">-- Pilih Customer --</option>
+                                @foreach($customers as $customer)
+                                    <option value="{{ $customer->id }}" {{ old('created_by') == $customer->id ? 'selected' : '' }}>{{ $customer->name }} ({{ $customer->email }})</option>
+                                @endforeach
+                            </select>
+                            @error('created_by')
+                                <p class="text-sm text-red-600 mt-2">{{ $message }}</p>
+                            @enderror
+                            <p class="text-xs text-gray-500 mt-1">Tiket ini akan tercatat atas nama customer yang dipilih.</p>
+                        </div>
+                        @endisset
+
                         <!-- Description -->
                         <div class="mb-4">
                             <label for="description" class="block font-medium text-sm text-gray-700">Deskripsi Detail <span class="text-red-500">*</span></label>

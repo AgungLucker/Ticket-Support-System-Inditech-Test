@@ -28,6 +28,7 @@ class TicketPolicy
 
     public function create(User $user): bool
     {
+        // Admin sudah di-handle oleh before(), Customer juga boleh
         return $user->isCustomer();
     }
 
