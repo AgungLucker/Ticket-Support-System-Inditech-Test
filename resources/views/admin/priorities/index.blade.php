@@ -71,11 +71,7 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <button @click="editItem({{ $priority->toJson() }})" class="text-indigo-600 hover:text-indigo-900 mx-2 transition">Edit</button>
-                                        <form action="{{ route('admin.priorities.destroy', $priority) }}" method="POST" class="inline" onsubmit="return confirm('Anda yakin ingin menghapus prioritas ini?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-rose-600 hover:text-rose-900 transition">Delete</button>
-                                        </form>
+                                        <button type="button" @click="$dispatch('open-delete-modal', { name: 'priority-delete', action: '{{ route('admin.priorities.destroy', $priority) }}', title: 'Hapus prioritas?', message: 'Prioritas yang masih digunakan tiket seharusnya tidak dihapus.' })" class="text-rose-600 hover:text-rose-900 transition">Delete</button>
                                     </td>
                                 </tr>
                                 @empty
@@ -150,6 +146,8 @@
                 </div>
             </div>
         </div>
+
+        <x-confirm-delete-modal name="priority-delete" />
 
         <script>
             document.addEventListener('alpine:init', () => {

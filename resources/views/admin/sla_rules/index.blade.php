@@ -73,11 +73,7 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <button @click="editItem({{ $rule->toJson() }})" class="text-indigo-600 hover:text-indigo-900 mx-2 transition">Edit</button>
-                                        <form action="{{ route('admin.sla-rules.destroy', $rule) }}" method="POST" class="inline" onsubmit="return confirm('Anda yakin ingin menghapus aturan SLA ini?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-rose-600 hover:text-rose-900 transition">Delete</button>
-                                        </form>
+                                        <button type="button" @click="$dispatch('open-delete-modal', { name: 'sla-rule-delete', action: '{{ route('admin.sla-rules.destroy', $rule) }}', title: 'Hapus aturan SLA?', message: 'Tiket baru dengan prioritas ini tidak akan memiliki perhitungan SLA sampai aturan dibuat kembali.' })" class="text-rose-600 hover:text-rose-900 transition">Delete</button>
                                     </td>
                                 </tr>
                                 @empty
@@ -171,6 +167,8 @@
                 </div>
             </div>
         </div>
+
+        <x-confirm-delete-modal name="sla-rule-delete" />
 
         <script>
             document.addEventListener('alpine:init', () => {

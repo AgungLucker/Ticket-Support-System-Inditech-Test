@@ -57,6 +57,21 @@ class User extends Authenticatable
         return $this->hasMany(Ticket::class, 'assigned_agent_id');
     }
 
+    public function supervisedTeams(): HasMany
+    {
+        return $this->hasMany(Team::class, 'supervisor_id');
+    }
+
+    public function comments(): HasMany
+    {
+        return $this->hasMany(Comment::class);
+    }
+
+    public function uploadedAttachments(): HasMany
+    {
+        return $this->hasMany(Attachment::class, 'uploaded_by');
+    }
+
     public function hasRole(string $role): bool
     {
         return $this->role?->slug === $role;

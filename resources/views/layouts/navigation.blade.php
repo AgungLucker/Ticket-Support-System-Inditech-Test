@@ -35,6 +35,9 @@
                             </x-slot>
 
                             <x-slot name="content">
+                                <x-dropdown-link :href="route('admin.users.index')">
+                                    {{ __('Users') }}
+                                </x-dropdown-link>
                                 <x-dropdown-link :href="route('admin.categories.index')">
                                     {{ __('Categories') }}
                                 </x-dropdown-link>
@@ -113,6 +116,9 @@
             @can('access-admin')
             <div class="pt-2 pb-2">
                 <div class="px-4 font-medium text-sm text-gray-500">{{ __('Master Data') }}</div>
+                <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
+                    {{ __('Users') }}
+                </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.categories.index')" :active="request()->routeIs('admin.categories.*')">
                     {{ __('Categories') }}
                 </x-responsive-nav-link>

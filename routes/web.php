@@ -23,6 +23,7 @@ Route::middleware('auth')->group(function () {
 require __DIR__.'/auth.php';
 
 Route::middleware(['auth', 'can:access-admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::resource('users', \App\Http\Controllers\Admin\UserController::class)->except(['create', 'show', 'edit']);
     Route::resource('categories', \App\Http\Controllers\Admin\CategoryController::class)->except(['create', 'show', 'edit']);
     Route::resource('labels', \App\Http\Controllers\Admin\LabelController::class)->except(['create', 'show', 'edit']);
     Route::resource('priorities', \App\Http\Controllers\Admin\PriorityController::class)->except(['create', 'show', 'edit']);
