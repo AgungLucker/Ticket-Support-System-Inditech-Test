@@ -40,6 +40,12 @@
                 </div>
                 @endif
 
+                <form method="GET" action="{{ route('admin.sla-rules.index') }}" class="mb-6 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-3">
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama atau slug prioritas SLA..." class="flex-1 rounded-xl border-gray-300">
+                    <button class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-xl">Cari</button>
+                    <a href="{{ route('admin.sla-rules.index') }}" class="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-xl text-center">Reset</a>
+                </form>
+
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-2xl border border-gray-100">
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
@@ -90,6 +96,7 @@
                             </tbody>
                         </table>
                     </div>
+                    <div class="p-4">{{ $slaRules->links() }}</div>
                 </div>
             </div>
 
