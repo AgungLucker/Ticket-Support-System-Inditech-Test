@@ -10,9 +10,21 @@ use Illuminate\Validation\Rule;
 
 class PriorityController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $priorities = Priority::orderBy('level', 'desc')->get();
+        $priorities = Priority::query()
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = $request->string('search')->toString();
+
+                $query->where(function ($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%")
+                        ->orWhere('slug', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('level', 'desc')
+            ->paginate(10)
+            ->withQueryString();
+
         return view('admin.priorities.index', compact('priorities'));
     }
 

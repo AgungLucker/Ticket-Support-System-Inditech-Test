@@ -10,9 +10,21 @@ use Illuminate\Validation\Rule;
 
 class LabelController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $labels = Label::latest()->get();
+        $labels = Label::query()
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = $request->string('search')->toString();
+
+                $query->where(function ($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%")
+                        ->orWhere('slug', 'like', "%{$search}%");
+                });
+            })
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
         return view('admin.labels.index', compact('labels'));
     }
 

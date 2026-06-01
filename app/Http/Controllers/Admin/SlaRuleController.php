@@ -9,9 +9,22 @@ use Illuminate\Http\Request;
 
 class SlaRuleController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $slaRules = SlaRule::with('priority')->latest()->get();
+        $slaRules = SlaRule::query()
+            ->with('priority')
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = $request->string('search')->toString();
+
+                $query->whereHas('priority', function ($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%")
+                        ->orWhere('slug', 'like', "%{$search}%");
+                });
+            })
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
         $priorities = Priority::doesntHave('slaRule')->get(); // Only priorities without SLA rules for new creation
         return view('admin.sla_rules.index', compact('slaRules', 'priorities'));
     }
