@@ -23,13 +23,15 @@ class Ticket extends Model
         'created_by',
         'assigned_agent_id',
         'due_at',
+        'response_due_at',
         'resolved_at',
         'closed_at',
     ];
 
     protected $casts = [
-        'due_at' => 'datetime',
-        'resolved_at' => 'datetime',
+        'due_at'          => 'datetime',
+        'response_due_at' => 'datetime',
+        'resolved_at'     => 'datetime',
         'closed_at' => 'datetime',
     ];
 

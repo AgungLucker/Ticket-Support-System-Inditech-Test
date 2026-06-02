@@ -2,13 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\StoreTicketRequest;
+use App\Http\Requests\Ticket\StoreTicketRequest;
+use App\Http\Requests\Ticket\UpdateTicketStatusRequest;
 use App\Models\Category;
 use App\Models\Label;
 use App\Models\Priority;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Services\TicketService;
+use App\Services\TicketStatusService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -16,10 +18,12 @@ use Illuminate\Support\Facades\Gate;
 class TicketController extends Controller
 {
     protected $ticketService;
+    protected $statusService;
 
-    public function __construct(TicketService $ticketService)
+    public function __construct(TicketService $ticketService, TicketStatusService $statusService)
     {
         $this->ticketService = $ticketService;
+        $this->statusService = $statusService;
     }
 
     public function index(Request $request)
@@ -150,9 +154,10 @@ class TicketController extends Controller
             'description'   => $ticketData['description'],
             'category_id'   => $ticketData['category_id'],
             'priority_id'   => $ticketData['priority_id'],
-            'created_by'    => $createdBy,
-            'status'        => 'Open',
-            'due_at'        => $this->ticketService->calculateSlaDueDate($ticketData['priority_id']),
+            'created_by'      => $createdBy,
+            'status'          => 'Open',
+            'due_at'          => $this->ticketService->calculateSlaDueDate($ticketData['priority_id']),
+            'response_due_at' => $this->ticketService->calculateResponseDueDate($ticketData['priority_id']),
         ]);
 
         if ($request->hasFile('attachments')) {
@@ -179,7 +184,58 @@ class TicketController extends Controller
     {
         Gate::authorize('view', $ticket);
 
-        $ticket->load(['category', 'priority', 'creator', 'assignedAgent', 'attachments']);
-        return view('tickets.show', compact('ticket'));
+        $ticket->load(['category', 'priority', 'creator', 'assignedAgent', 'attachments',
+            'comments' => fn($q) => $q->with(['user', 'attachments'])->oldest(),
+        ]);
+
+        $allowedStatuses  = $this->statusService->allowedTransitions($ticket->status);
+        $assignableAgents = null;
+
+        if (Auth::user()->isAdmin()) {
+            $assignableAgents = User::whereHas('role', fn($q) => $q->where('slug', 'agent'))
+                ->orderBy('name')->get();
+        } elseif (Auth::user()->isSupervisor()) {
+            $assignableAgents = User::whereHas('role', fn($q) => $q->where('slug', 'agent'))
+                ->where('team_id', Auth::user()->team_id)
+                ->orderBy('name')->get();
+        }
+
+        return view('tickets.show', compact('ticket', 'allowedStatuses', 'assignableAgents'));
+    }
+
+    public function updateStatus(UpdateTicketStatusRequest $request, Ticket $ticket)
+    {
+        $newStatus = $request->validated()['status'];
+
+        // Reopen punya policy sendiri (khusus customer pemilik tiket)
+        if ($newStatus === 'Reopened') {
+            Gate::authorize('reopen', $ticket);
+        } else {
+            Gate::authorize('updateStatus', $ticket);
+        }
+
+        if (! $this->statusService->canUserTransition(Auth::user(), $ticket, $newStatus)) {
+            return back()->withErrors(['status' => 'Transisi status tidak diizinkan.']);
+        }
+
+        $ticket->update(['status' => $newStatus]);
+
+        return back()->with('success', 'Status tiket berhasil diperbarui.');
+    }
+
+    public function assign(Request $request, Ticket $ticket)
+    {
+        Gate::authorize('assign', $ticket);
+
+        $request->validate([
+            'agent_id' => ['required', 'exists:users,id'],
+        ]);
+
+        $ticket->update([
+            'assigned_agent_id' => $request->agent_id,
+            'status'            => $ticket->status === 'Open' ? 'Assigned' : $ticket->status,
+        ]);
+
+        return back()->with('success', 'Tiket berhasil di-assign ke agent.');
     }
 }

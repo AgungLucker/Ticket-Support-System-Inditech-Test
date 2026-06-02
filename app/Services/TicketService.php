@@ -36,10 +36,21 @@ class TicketService
     {
         $slaRule = SlaRule::where('priority_id', $priorityId)->first();
 
-        if (!$slaRule) {
-            return null; // No SLA defined for this priority
+        if (! $slaRule) {
+            return null;
         }
 
         return Carbon::now()->addHours($slaRule->resolution_time_hours);
+    }
+
+    public function calculateResponseDueDate(int $priorityId): ?Carbon
+    {
+        $slaRule = SlaRule::where('priority_id', $priorityId)->first();
+
+        if (! $slaRule) {
+            return null;
+        }
+
+        return Carbon::now()->addHours($slaRule->response_time_hours);
     }
 }

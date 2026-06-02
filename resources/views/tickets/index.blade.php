@@ -23,10 +23,10 @@
                             <div class="flex-1">
                                 <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nomor, judul tiket..." class="w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm">
                             </div>
-                            <div class="w-full md:w-44">
+                            <div class="w-full md:w-52">
                                 <select name="status" class="w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm">
                                     <option value="">Semua Status</option>
-                                    @foreach(['Open','Assigned','In Progress','Resolved','Closed'] as $s)
+                                    @foreach(\App\Services\TicketStatusService::allStatuses() as $s)
                                         <option value="{{ $s }}" {{ request('status') == $s ? 'selected' : '' }}>{{ $s }}</option>
                                     @endforeach
                                 </select>
@@ -141,12 +141,19 @@
                                         <div class="text-sm" style="color: {{ $ticket->priority->color ?? '#6b7280' }}">{{ $ticket->priority->name ?? '-' }}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                            @if($ticket->status === 'Open') bg-blue-100 text-blue-800
-                                            @elseif($ticket->status === 'Assigned') bg-yellow-100 text-yellow-800
-                                            @elseif($ticket->status === 'In Progress') bg-indigo-100 text-indigo-800
-                                            @elseif($ticket->status === 'Resolved') bg-green-100 text-green-800
-                                            @else bg-gray-100 text-gray-800 @endif">
+                                        @php
+                                            $statusClass = [
+                                                'Open'                 => 'bg-blue-100 text-blue-800',
+                                                'Assigned'             => 'bg-yellow-100 text-yellow-800',
+                                                'In Progress'          => 'bg-indigo-100 text-indigo-800',
+                                                'Waiting for Customer' => 'bg-orange-100 text-orange-800',
+                                                'Resolved'             => 'bg-green-100 text-green-800',
+                                                'Closed'               => 'bg-gray-100 text-gray-800',
+                                                'Reopened'             => 'bg-purple-100 text-purple-800',
+                                                'Escalated'            => 'bg-red-100 text-red-800',
+                                            ][$ticket->status] ?? 'bg-gray-100 text-gray-800';
+                                        @endphp
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $statusClass }}">
                                             {{ $ticket->status }}
                                         </span>
                                     </td>
