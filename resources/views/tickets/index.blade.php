@@ -21,7 +21,7 @@
                         {{-- Primary filters --}}
                         <div class="flex flex-col md:flex-row gap-3">
                             <div class="flex-1">
-                                <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nomor, judul tiket..." class="w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm">
+                                <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nomor, judul, deskripsi, nama/email customer..." class="w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm">
                             </div>
                             <div class="w-full md:w-52">
                                 <select name="status" class="w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm">
@@ -47,7 +47,7 @@
 
                         {{-- Advanced filters (collapsible) --}}
                         @php
-                            $hasAdvanced = request()->hasAny(['category_id','label_id','assigned_agent_id','from_date','to_date','overdue']);
+                            $hasAdvanced = request()->hasAny(['category_id','label_id','assigned_agent_id','from_date','to_date','due_from','due_to','overdue']);
                         @endphp
                         <details class="mt-3" {{ $hasAdvanced ? 'open' : '' }}>
                             <summary class="text-sm text-indigo-600 hover:text-indigo-800 cursor-pointer select-none w-fit">
@@ -83,7 +83,7 @@
                                     </select>
                                 </div>
                                 @endif
-                                <div class="sm:col-span-2 lg:col-span-1">
+                                <div class="sm:col-span-2 lg:col-span-2">
                                     <label class="block text-xs text-gray-500 mb-1">Rentang Tanggal Dibuat</label>
                                     <div class="flex items-center gap-2 min-w-0">
                                         <input type="date" name="from_date" value="{{ request('from_date') }}" class="min-w-0 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm">
@@ -91,7 +91,15 @@
                                         <input type="date" name="to_date" value="{{ request('to_date') }}" class="min-w-0 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm">
                                     </div>
                                 </div>
-                                <div class="flex items-end pb-1">
+                                <div class="sm:col-span-2 lg:col-span-2">
+                                    <label class="block text-xs text-gray-500 mb-1">Rentang Tenggat SLA</label>
+                                    <div class="flex items-center gap-2 min-w-0">
+                                        <input type="date" name="due_from" value="{{ request('due_from') }}" class="min-w-0 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm">
+                                        <span class="text-gray-400 text-xs shrink-0">–</span>
+                                        <input type="date" name="due_to" value="{{ request('due_to') }}" class="min-w-0 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm">
+                                    </div>
+                                </div>
+                                <div class="sm:col-span-2 lg:col-span-4 flex items-center">
                                     <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
                                         <input type="checkbox" name="overdue" value="1" {{ request('overdue') == '1' ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600">
                                         Hanya Overdue

@@ -18,6 +18,8 @@ class StoreTicketRequest extends FormRequest
             'description'    => ['required', 'string'],
             'category_id'    => ['required', 'exists:categories,id'],
             'priority_id'    => ['required', 'exists:priorities,id'],
+            'label_ids'      => ['nullable', 'array'],
+            'label_ids.*'    => ['exists:labels,id'],
             'attachments'    => ['nullable', 'array', 'max:5'],
             'attachments.*'  => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx', 'max:2048'],
         ];

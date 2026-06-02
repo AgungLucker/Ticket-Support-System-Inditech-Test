@@ -56,6 +56,20 @@ class TicketStatusService
     }
 
     /**
+     * Returns the timestamp columns that must be updated alongside the status change.
+     * Resolved sets resolved_at, Closed sets closed_at, Reopened clears both.
+     */
+    public function timestampUpdates(string $newStatus): array
+    {
+        return match ($newStatus) {
+            'Resolved' => ['resolved_at' => now()],
+            'Closed'   => ['closed_at'   => now()],
+            'Reopened' => ['resolved_at' => null, 'closed_at' => null],
+            default    => [],
+        };
+    }
+
+    /**
      * - Customer: can only Reopen (Resolved/Closed → Reopened)
      * - Agent: can update status of their assigned ticket (except Assign/Reassign)
      * - Supervisor/Admin: unrestricted (handled by Policy)

@@ -10,23 +10,19 @@ class TicketService
 {
     /**
      * Generate a unique ticket number.
-     * Format: TKT-YYYYMMDD-XXXX (e.g. TKT-20240528-0001)
+     * Format: TCK-YYYY-XXXXXX (e.g. TCK-2026-000001)
      */
     public function generateTicketNumber(): string
     {
-        $prefix = 'TKT';
-        $date = Carbon::now()->format('Ymd');
-        
-        $lastTicket = Ticket::where('ticket_number', 'LIKE', "{$prefix}-{$date}-%")->orderBy('id', 'desc')->first();
+        $prefix = 'TCK-' . now()->year;
 
-        if (!$lastTicket) {
-            $number = 1;
-        } else {
-            $lastNumber = intval(substr($lastTicket->ticket_number, -4));
-            $number = $lastNumber + 1;
-        }
+        $lastTicket = Ticket::where('ticket_number', 'LIKE', "{$prefix}-%")
+            ->orderBy('id', 'desc')
+            ->first();
 
-        return sprintf('%s-%s-%04d', $prefix, $date, $number);
+        $number = $lastTicket ? ((int) substr($lastTicket->ticket_number, -6)) + 1 : 1;
+
+        return sprintf('%s-%06d', $prefix, $number);
     }
 
     /**

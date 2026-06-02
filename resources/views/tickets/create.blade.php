@@ -50,6 +50,26 @@
                             <p class="text-xs text-gray-500 mt-1">Pilih tingkat urgensi dengan bijak. Prioritas tinggi memiliki SLA yang lebih ketat.</p>
                         </div>
 
+                        {{-- Labels (opsional, multiple) --}}
+                        @if($labels->isNotEmpty())
+                        <div class="mb-4">
+                            <label class="block font-medium text-sm text-gray-700 mb-1">Label <span class="text-xs text-gray-400">(Opsional)</span></label>
+                            <div class="flex flex-wrap gap-3">
+                                @foreach($labels as $label)
+                                <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                                    <input type="checkbox" name="label_ids[]" value="{{ $label->id }}"
+                                        {{ in_array($label->id, old('label_ids', [])) ? 'checked' : '' }}
+                                        class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                    <span class="text-sm text-gray-700">{{ $label->name }}</span>
+                                </label>
+                                @endforeach
+                            </div>
+                            @error('label_ids')
+                                <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        @endif
+
                         {{-- Dropdown requester khusus Admin --}}
                         @isset($customers)
                         <div class="mb-4">

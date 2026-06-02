@@ -44,14 +44,16 @@ class TicketController extends Controller
             // Supervisor: hanya tiket dari agent dalam timnya
             $query->whereHas('assignedAgent', fn($q) => $q->where('team_id', $user->team_id));
         }
-        // Admin: tidak ada filter tambahan, lihat semua tiket
 
         // Filter pencarian
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('ticket_number', 'like', "%{$search}%")
-                  ->orWhere('title', 'like', "%{$search}%");
+                  ->orWhere('title', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhereHas('creator', fn($q2) => $q2->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%"));
             });
         }
 
@@ -95,8 +97,16 @@ class TicketController extends Controller
             $query->whereDate('created_at', '<=', $request->to_date);
         }
 
+        // Filter rentang due date
+        if ($request->filled('due_from')) {
+            $query->whereDate('due_at', '>=', $request->due_from);
+        }
+        if ($request->filled('due_to')) {
+            $query->whereDate('due_at', '<=', $request->due_to);
+        }
+
         // Sorting
-        $sortField = in_array($request->sort, ['created_at', 'due_at', 'status', 'priority_id'])
+        $sortField = in_array($request->sort, ['created_at', 'updated_at', 'due_at', 'status', 'priority_id'])
             ? $request->sort : 'created_at';
         $sortDir = $request->direction === 'asc' ? 'asc' : 'desc';
         $query->orderBy($sortField, $sortDir);
@@ -126,6 +136,7 @@ class TicketController extends Controller
 
         $categories = Category::orderBy('name')->get();
         $priorities = Priority::orderBy('level', 'desc')->get();
+        $labels     = Label::orderBy('name')->get();
 
         // Admin perlu daftar customer untuk dipilih sebagai requester
         $customers = null;
@@ -135,7 +146,7 @@ class TicketController extends Controller
                 ->get();
         }
 
-        return view('tickets.create', compact('categories', 'priorities', 'customers'));
+        return view('tickets.create', compact('categories', 'priorities', 'labels', 'customers'));
     }
 
     public function store(StoreTicketRequest $request)
@@ -159,6 +170,10 @@ class TicketController extends Controller
             'due_at'          => $this->ticketService->calculateSlaDueDate($ticketData['priority_id']),
             'response_due_at' => $this->ticketService->calculateResponseDueDate($ticketData['priority_id']),
         ]);
+
+        if (!empty($ticketData['label_ids'])) {
+            $ticket->labels()->sync($ticketData['label_ids']);
+        }
 
         if ($request->hasFile('attachments')) {
             foreach ($request->file('attachments') as $file) {
@@ -218,7 +233,10 @@ class TicketController extends Controller
             return back()->withErrors(['status' => 'Transisi status tidak diizinkan.']);
         }
 
-        $ticket->update(['status' => $newStatus]);
+        $ticket->update(array_merge(
+            ['status' => $newStatus],
+            $this->statusService->timestampUpdates($newStatus)
+        ));
 
         return back()->with('success', 'Status tiket berhasil diperbarui.');
     }
