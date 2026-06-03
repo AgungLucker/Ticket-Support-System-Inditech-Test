@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Ticket\StoreCommentRequest;
 use App\Models\Ticket;
+use App\Notifications\TicketCommented;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 
@@ -42,6 +43,22 @@ class CommentController extends Controller
                     'uploaded_by'   => Auth::id(),
                 ]);
             }
+        }
+
+        // Kirim notifikasi ke creator + assigned agent, kecuali yang menulis komentar
+        // Customer tidak dapat notifikasi internal note
+        $recipients = collect();
+        $recipients->push($ticket->creator);
+        if ($ticket->assignedAgent) {
+            $recipients->push($ticket->assignedAgent);
+        }
+        $recipients = $recipients
+            ->unique('id')
+            ->filter(fn($u) => $u->id !== Auth::id())
+            ->filter(fn($u) => ! ($isInternal && $u->isCustomer()));
+
+        foreach ($recipients as $recipient) {
+            $recipient->notify(new TicketCommented($ticket, $comment));
         }
 
         return back()->with('success', $isInternal ? 'Catatan internal berhasil ditambahkan.' : 'Komentar berhasil ditambahkan.');

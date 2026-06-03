@@ -10,11 +10,16 @@ use App\Models\Label;
 use App\Models\Priority;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Notifications\TicketAssigned;
+use App\Notifications\TicketCreated;
+use App\Notifications\TicketEscalated;
+use App\Notifications\TicketResolved;
 use App\Services\TicketService;
 use App\Services\TicketStatusService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Notification;
 
 class TicketController extends Controller
 {
@@ -193,6 +198,9 @@ class TicketController extends Controller
             }
         }
 
+        $admins = User::whereHas('role', fn($q) => $q->where('slug', 'admin'))->get();
+        Notification::send($admins, new TicketCreated($ticket));
+
         return redirect()->route('tickets.index')->with('success', 'Tiket berhasil dibuat.');
     }
 
@@ -271,6 +279,13 @@ class TicketController extends Controller
             $this->statusService->timestampUpdates($newStatus)
         ));
 
+        if ($newStatus === 'Resolved') {
+            $ticket->creator->notify(new TicketResolved($ticket));
+        } elseif ($newStatus === 'Escalated') {
+            $supervisorsAndAdmins = User::whereHas('role', fn($q) => $q->whereIn('slug', ['supervisor', 'admin']))->get();
+            Notification::send($supervisorsAndAdmins, new TicketEscalated($ticket));
+        }
+
         return back()->with('success', 'Status tiket berhasil diperbarui.');
     }
 
@@ -286,6 +301,9 @@ class TicketController extends Controller
             'assigned_agent_id' => $request->agent_id,
             'status'            => $ticket->status === 'Open' ? 'Assigned' : $ticket->status,
         ]);
+
+        $agent = User::find($request->agent_id);
+        $agent?->notify(new TicketAssigned($ticket->fresh()));
 
         return back()->with('success', 'Tiket berhasil di-assign ke agent.');
     }
