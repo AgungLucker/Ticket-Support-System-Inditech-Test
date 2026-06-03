@@ -32,7 +32,7 @@ class CommentController extends Controller
                 if (! $file->isValid()) {
                     continue;
                 }
-                $path = $file->store('attachments', 'public');
+                $path = $file->store('attachments');
                 $comment->attachments()->create([
                     'path'          => $path,
                     'original_name' => $file->getClientOriginalName(),

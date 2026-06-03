@@ -78,7 +78,7 @@
                                         <li class="flex items-center p-3 border rounded-md">
                                             <svg class="w-5 h-5 text-gray-400 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
                                             <div class="flex-1 min-w-0">
-                                                <a href="{{ Storage::url($attachment->path) }}" target="_blank" class="text-sm font-medium text-indigo-600 hover:text-indigo-900 truncate block">
+                                                <a href="{{ route('attachments.show', $attachment) }}" target="_blank" class="text-sm font-medium text-indigo-600 hover:text-indigo-900 truncate block">
                                                     {{ $attachment->original_name }}
                                                 </a>
                                                 <p class="text-xs text-gray-500">{{ number_format($attachment->size / 1024, 2) }} KB</p>
@@ -128,7 +128,7 @@
                                         @if($comment->attachments->count() > 0)
                                             <div class="mt-2 flex flex-wrap gap-2">
                                                 @foreach($comment->attachments as $att)
-                                                    <a href="{{ Storage::url($att->path) }}" target="_blank" class="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 border border-indigo-200 rounded px-2 py-1">
+                                                    <a href="{{ route('attachments.show', $att) }}" target="_blank" class="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 border border-indigo-200 rounded px-2 py-1">
                                                         📎 {{ $att->original_name }}
                                                     </a>
                                                 @endforeach
@@ -148,8 +148,13 @@
                                 <div class="mb-3">
                                     <textarea name="content" rows="3" placeholder="Tulis komentar..." class="w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm" required>{{ old('content') }}</textarea>
                                 </div>
-                                <div class="mb-3">
-                                    <input type="file" name="attachments[]" multiple class="text-sm text-gray-500 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                                <div class="mb-3" x-data="attachmentValidator()">
+                                    <input type="file" name="attachments[]" multiple
+                                        class="text-sm text-gray-500 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                                        @change="validate($event)">
+                                    <template x-for="error in errors" :key="error">
+                                        <p x-text="error" class="text-sm text-red-600 mt-1"></p>
+                                    </template>
                                     <p class="text-xs text-gray-400 mt-1">Maks 5 file, 2MB per file (jpg, png, pdf, doc, xls)</p>
                                 </div>
                                 <div class="flex items-center justify-between">

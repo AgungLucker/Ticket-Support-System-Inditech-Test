@@ -98,14 +98,19 @@
                         </div>
 
                         <!-- Attachments -->
-                        <div class="mb-6">
+                        <div class="mb-6" x-data="attachmentValidator()">
                             <label for="attachments" class="block font-medium text-sm text-gray-700">Lampiran Bukti / Screenshot (Opsional)</label>
-                            <input type="file" id="attachments" name="attachments[]" multiple class="block mt-1 w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+                            <input type="file" id="attachments" name="attachments[]" multiple
+                                class="block mt-1 w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                                @change="validate($event)" />
+                            <template x-for="error in errors" :key="error">
+                                <p x-text="error" class="text-sm text-red-600 mt-1"></p>
+                            </template>
                             @error('attachments')
-                                <p class="text-sm text-red-600 mt-2">{{ $message }}</p>
+                                <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
                             @enderror
                             @error('attachments.*')
-                                <p class="text-sm text-red-600 mt-2">{{ $message }}</p>
+                                <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
                             @enderror
                             <p class="text-xs text-gray-500 mt-1">Maksimal 5 file. Ukuran maks 2MB per file. (Format: jpg, png, pdf, doc, xls)</p>
                         </div>

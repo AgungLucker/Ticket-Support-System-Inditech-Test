@@ -181,7 +181,7 @@ class TicketController extends Controller
                 if (!$file->isValid()) {
                     continue; // Skip file yang gagal terunggah
                 }
-                $path = $file->store('attachments', 'public');
+                $path = $file->store('attachments');
                 $ticket->attachments()->create([
                     'path' => $path,
                     'original_name' => $file->getClientOriginalName(),
