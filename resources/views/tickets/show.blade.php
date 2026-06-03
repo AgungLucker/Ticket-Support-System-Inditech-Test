@@ -1,10 +1,17 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center gap-4">
-            <a href="{{ route('tickets.index') }}" class="text-gray-500 hover:text-gray-700">&larr; Kembali</a>
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                Detail Tiket #{{ $ticket->ticket_number }}
-            </h2>
+        <div class="flex items-center justify-between w-full">
+            <div class="flex items-center gap-4">
+                <a href="{{ route('tickets.index') }}" class="text-gray-500 hover:text-gray-700">&larr; Kembali</a>
+                <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                    Detail Tiket #{{ $ticket->ticket_number }}
+                </h2>
+            </div>
+            @can('update', $ticket)
+                <a href="{{ route('tickets.edit', $ticket) }}" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold py-2 px-4 rounded-md transition">
+                    Edit Tiket
+                </a>
+            @endcan
         </div>
     </x-slot>
 

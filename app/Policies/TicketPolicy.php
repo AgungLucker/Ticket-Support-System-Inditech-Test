@@ -34,8 +34,7 @@ class TicketPolicy
 
     public function update(User $user, Ticket $ticket): bool
     {
-        return $this->isAssignedAgent($user, $ticket)
-            || $this->isSupervisorForTicket($user, $ticket);
+        return false; // hanya Admin, di-handle oleh before()
     }
 
     public function delete(User $user, Ticket $ticket): bool

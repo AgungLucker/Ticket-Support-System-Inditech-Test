@@ -18,7 +18,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    Route::resource('tickets', TicketController::class)->except(['edit', 'update', 'destroy']);
+    Route::resource('tickets', TicketController::class)->except(['destroy']);
     Route::patch('tickets/{ticket}/status', [TicketController::class, 'updateStatus'])->name('tickets.updateStatus');
     Route::post('tickets/{ticket}/assign', [TicketController::class, 'assign'])->name('tickets.assign');
     Route::post('tickets/{ticket}/comments', [CommentController::class, 'store'])->name('tickets.comments.store');

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Ticket\StoreTicketRequest;
+use App\Http\Requests\Ticket\UpdateTicketRequest;
 use App\Http\Requests\Ticket\UpdateTicketStatusRequest;
 use App\Models\Category;
 use App\Models\Label;
@@ -218,12 +219,44 @@ class TicketController extends Controller
         return view('tickets.show', compact('ticket', 'allowedStatuses', 'assignableAgents'));
     }
 
+    public function edit(Ticket $ticket)
+    {
+        Gate::authorize('update', $ticket);
+
+        $ticket->load('labels');
+        $categories = Category::orderBy('name')->get();
+        $priorities = Priority::orderBy('level', 'desc')->get();
+        $labels     = Label::orderBy('name')->get();
+
+        return view('tickets.edit', compact('ticket', 'categories', 'priorities', 'labels'));
+    }
+
+    public function update(UpdateTicketRequest $request, Ticket $ticket)
+    {
+        Gate::authorize('update', $ticket);
+
+        $data = $request->validated();
+
+        $ticket->update([
+            'title'           => $data['title'],
+            'description'     => $data['description'],
+            'category_id'     => $data['category_id'],
+            'priority_id'     => $data['priority_id'],
+            'due_at'          => $this->ticketService->calculateSlaDueDate($data['priority_id'], $ticket->created_at),
+            'response_due_at' => $this->ticketService->calculateResponseDueDate($data['priority_id'], $ticket->created_at),
+        ]);
+
+        $ticket->labels()->sync($data['label_ids'] ?? []);
+
+        return redirect()->route('tickets.show', $ticket)->with('success', 'Tiket berhasil diperbarui.');
+    }
+
     public function updateStatus(UpdateTicketStatusRequest $request, Ticket $ticket)
     {
         $newStatus = $request->validated()['status'];
 
-        // Reopen punya policy sendiri (khusus customer pemilik tiket)
-        if ($newStatus === 'Reopened') {
+        // Customer reopen pakai policy khusus; Agent/Supervisor/Admin pakai updateStatus biasa
+        if ($newStatus === 'Reopened' && Auth::user()->isCustomer()) {
             Gate::authorize('reopen', $ticket);
         } else {
             Gate::authorize('updateStatus', $ticket);

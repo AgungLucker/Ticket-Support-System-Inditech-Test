@@ -26,21 +26,21 @@ class TicketServiceTest extends TestCase
     {
         // Assert first ticket format
         $number1 = $this->ticketService->generateTicketNumber();
-        $this->assertMatchesRegularExpression('/^TKT-\d{8}-\d{4}$/', $number1);
-        
+        $this->assertMatchesRegularExpression('/^TCK-\d{4}-\d{6}$/', $number1);
+
         // Mock a ticket in DB to test sequential logic
         Ticket::factory()->create([
             'ticket_number' => $number1,
         ]);
 
         $number2 = $this->ticketService->generateTicketNumber();
-        
+
         // Ensure it increments
         $this->assertNotEquals($number1, $number2);
-        
-        $prefix = 'TKT-' . Carbon::now()->format('Ymd') . '-';
-        $this->assertEquals($prefix . '0001', $number1);
-        $this->assertEquals($prefix . '0002', $number2);
+
+        $prefix = 'TCK-' . now()->year . '-';
+        $this->assertEquals($prefix . '000001', $number1);
+        $this->assertEquals($prefix . '000002', $number2);
     }
 
     public function test_sla_due_date_calculation_adds_resolution_hours()

@@ -26,9 +26,10 @@ class TicketService
     }
 
     /**
-     * Calculate SLA due date based on priority.
+     * Calculate SLA resolution due date based on priority.
+     * $from defaults to now() for new tickets; pass $ticket->created_at when recalculating on edit.
      */
-    public function calculateSlaDueDate(int $priorityId): ?Carbon
+    public function calculateSlaDueDate(int $priorityId, ?Carbon $from = null): ?Carbon
     {
         $slaRule = SlaRule::where('priority_id', $priorityId)->first();
 
@@ -36,10 +37,10 @@ class TicketService
             return null;
         }
 
-        return Carbon::now()->addHours($slaRule->resolution_time_hours);
+        return ($from ?? Carbon::now())->copy()->addHours($slaRule->resolution_time_hours);
     }
 
-    public function calculateResponseDueDate(int $priorityId): ?Carbon
+    public function calculateResponseDueDate(int $priorityId, ?Carbon $from = null): ?Carbon
     {
         $slaRule = SlaRule::where('priority_id', $priorityId)->first();
 
@@ -47,6 +48,6 @@ class TicketService
             return null;
         }
 
-        return Carbon::now()->addHours($slaRule->response_time_hours);
+        return ($from ?? Carbon::now())->copy()->addHours($slaRule->response_time_hours);
     }
 }
