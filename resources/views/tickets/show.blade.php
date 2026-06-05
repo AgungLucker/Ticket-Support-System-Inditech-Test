@@ -17,9 +17,9 @@
 
     <div class="py-12">
         <div class="max-w-5xl mx-auto sm:px-6 lg:px-8 flex flex-col md:flex-row gap-6">
-
+            
             <div class="w-full md:w-2/3 space-y-6">
-
+                
                 {{-- Flash message --}}
                 @if(session('success'))
                     <div class="bg-green-50 border border-green-200 text-green-800 text-sm rounded-md px-4 py-3">
