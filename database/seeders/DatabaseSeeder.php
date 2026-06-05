@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\ActivityLog;
 use App\Models\Category;
 use App\Models\Label;
 use App\Models\Priority;
@@ -141,9 +142,10 @@ class DatabaseSeeder extends Seeder
         User::factory(10)->customer()->create();
         User::factory(5)->agent()->create(['team_id' => $supportTeam->id]);
 
+        $admin     = User::where('email', 'admin@admin.com')->first();
         $customers = User::where('role_id', Role::where('slug', 'customer')->value('id'))->get();
-        $agents = User::where('role_id', Role::where('slug', 'agent')->value('id'))->get();
-        $allUsers = $customers->merge($agents);
+        $agents    = User::where('role_id', Role::where('slug', 'agent')->value('id'))->get();
+        $allUsers  = $customers->merge($agents);
         
         $priorities = Priority::all();
         $categories = Category::all();
@@ -154,13 +156,15 @@ class DatabaseSeeder extends Seeder
             ->recycle($priorities) // Menghindari duplikasi master priority
             ->recycle($categories) // Menghindari duplikasi master category
             ->create()
-            ->each(function ($ticket) use ($agents, $allUsers) {
+            ->each(function ($ticket) use ($agents, $allUsers, $admin) {
                 
                 // Secara acak, berikan (*assign*) tiket ke agent tertentu
+                $assignedAgent = null;
                 if (rand(1, 10) > 4) {
+                    $assignedAgent = $agents->random();
                     $ticket->update([
-                        'status' => rand(1, 10) > 5 ? 'In Progress' : 'Assigned',
-                        'assigned_agent_id' => $agents->random()->id,
+                        'status'            => rand(1, 10) > 5 ? 'In Progress' : 'Assigned',
+                        'assigned_agent_id' => $assignedAgent->id,
                     ]);
                 }
 
@@ -174,12 +178,35 @@ class DatabaseSeeder extends Seeder
                     ->recycle($ticket)
                     ->recycle($allUsers)
                     ->create();
-                
-                // Tambahkan 1-3 log aktivitas
-                \App\Models\ActivityLog::factory(rand(1, 3))
-                    ->recycle($ticket)
-                    ->recycle($allUsers)
-                    ->create();
+
+                // Activity logs berdasarkan state tiket
+                $ticket->refresh();
+
+                ActivityLog::create([
+                    'ticket_id' => $ticket->id,
+                    'user_id'   => $ticket->created_by,
+                    'action'    => 'ticket_created',
+                ]);
+
+                if ($assignedAgent) {
+                    ActivityLog::create([
+                        'ticket_id' => $ticket->id,
+                        'user_id'   => $admin->id,
+                        'action'    => 'ticket_assigned',
+                        'old_value' => null,
+                        'new_value' => $assignedAgent->name,
+                    ]);
+                }
+
+                if ($ticket->status !== 'Open') {
+                    ActivityLog::create([
+                        'ticket_id' => $ticket->id,
+                        'user_id'   => $ticket->assigned_agent_id ?? $admin->id,
+                        'action'    => 'status_changed',
+                        'old_value' => 'Open',
+                        'new_value' => $ticket->status,
+                    ]);
+                }
             });
     }
 }

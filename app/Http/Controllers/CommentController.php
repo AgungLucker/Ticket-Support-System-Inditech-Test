@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Ticket\StoreCommentRequest;
 use App\Models\Ticket;
 use App\Notifications\TicketCommented;
+use App\Services\ActivityLogger;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 
@@ -42,6 +43,7 @@ class CommentController extends Controller
                     'size'          => $file->getSize(),
                     'uploaded_by'   => Auth::id(),
                 ]);
+                ActivityLogger::log($ticket, 'attachment_uploaded', $isInternal ? 'internal note' : 'comment', $file->getClientOriginalName());
             }
         }
 
@@ -60,6 +62,8 @@ class CommentController extends Controller
         foreach ($recipients as $recipient) {
             $recipient->notify(new TicketCommented($ticket, $comment));
         }
+
+        ActivityLogger::log($ticket, $isInternal ? 'internal_note_added' : 'comment_added');
 
         return back()->with('success', $isInternal ? 'Catatan internal berhasil ditambahkan.' : 'Komentar berhasil ditambahkan.');
     }

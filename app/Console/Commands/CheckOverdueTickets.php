@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Notifications\TicketSlaOverdue;
+use App\Services\ActivityLogger;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Notification;
 
@@ -31,6 +32,7 @@ class CheckOverdueTickets extends Command
 
         foreach ($overdueTickets as $ticket) {
             Notification::send($supervisorsAndAdmins, new TicketSlaOverdue($ticket));
+            ActivityLogger::log($ticket, 'sla_overdue');
         }
 
         $this->info("Notifikasi dikirim untuk {$overdueTickets->count()} tiket overdue.");

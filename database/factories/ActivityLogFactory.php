@@ -12,9 +12,11 @@ class ActivityLogFactory extends Factory
     {
         return [
             'ticket_id' => Ticket::factory(),
-            'user_id' => User::factory(),
-            'action' => fake()->randomElement(['created', 'assigned', 'status_changed', 'comment_added']),
-            'description' => fake()->sentence(),
+            'user_id'   => User::factory(),
+            'action'    => fake()->randomElement([
+                'ticket_created', 'ticket_assigned', 'status_changed',
+                'comment_added', 'priority_changed', 'ticket_updated',
+            ]),
             'old_value' => null,
             'new_value' => null,
         ];

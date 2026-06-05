@@ -14,6 +14,7 @@ use App\Notifications\TicketAssigned;
 use App\Notifications\TicketCreated;
 use App\Notifications\TicketEscalated;
 use App\Notifications\TicketResolved;
+use App\Services\ActivityLogger;
 use App\Services\TicketService;
 use App\Services\TicketStatusService;
 use Illuminate\Http\Request;
@@ -195,8 +196,11 @@ class TicketController extends Controller
                     'size' => $file->getSize(),
                     'uploaded_by' => Auth::id(),
                 ]);
+                ActivityLogger::log($ticket, 'attachment_uploaded', 'ticket', $file->getClientOriginalName());
             }
         }
+
+        ActivityLogger::log($ticket, 'ticket_created');
 
         $admins = User::whereHas('role', fn($q) => $q->where('slug', 'admin'))->get();
         Notification::send($admins, new TicketCreated($ticket));
@@ -245,6 +249,9 @@ class TicketController extends Controller
 
         $data = $request->validated();
 
+        $priorityChanged = $ticket->priority_id != $data['priority_id'];
+        $oldPriority     = $ticket->priority->name;
+
         $ticket->update([
             'title'           => $data['title'],
             'description'     => $data['description'],
@@ -255,6 +262,12 @@ class TicketController extends Controller
         ]);
 
         $ticket->labels()->sync($data['label_ids'] ?? []);
+
+        if ($priorityChanged) {
+            ActivityLogger::log($ticket, 'priority_changed', $oldPriority, Priority::find($data['priority_id'])->name);
+        } else {
+            ActivityLogger::log($ticket, 'ticket_updated');
+        }
 
         return redirect()->route('tickets.show', $ticket)->with('success', 'Tiket berhasil diperbarui.');
     }
@@ -274,10 +287,14 @@ class TicketController extends Controller
             return back()->withErrors(['status' => 'Transisi status tidak diizinkan.']);
         }
 
+        $oldStatus = $ticket->status;
+
         $ticket->update(array_merge(
             ['status' => $newStatus],
             $this->statusService->timestampUpdates($newStatus)
         ));
+
+        ActivityLogger::log($ticket, 'status_changed', $oldStatus, $newStatus);
 
         if ($newStatus === 'Resolved') {
             $ticket->creator->notify(new TicketResolved($ticket));
@@ -297,6 +314,8 @@ class TicketController extends Controller
             'agent_id' => ['required', 'exists:users,id'],
         ]);
 
+        $oldAgentName = $ticket->assignedAgent?->name;
+
         $ticket->update([
             'assigned_agent_id' => $request->agent_id,
             'status'            => $ticket->status === 'Open' ? 'Assigned' : $ticket->status,
@@ -304,6 +323,8 @@ class TicketController extends Controller
 
         $agent = User::find($request->agent_id);
         $agent?->notify(new TicketAssigned($ticket->fresh()));
+
+        ActivityLogger::log($ticket, 'ticket_assigned', $oldAgentName, $agent?->name);
 
         return back()->with('success', 'Tiket berhasil di-assign ke agent.');
     }
