@@ -11,23 +11,27 @@ class TicketFactory extends Factory
 {
     public function definition(): array
     {
+        $status     = fake()->randomElement(['Open', 'Assigned', 'In Progress', 'Waiting for Customer', 'Resolved', 'Closed', 'Reopened', 'Escalated']);
+        $resolvedAt = in_array($status, ['Resolved', 'Closed']) ? fake()->dateTimeBetween('-30 days', '-1 hour') : null;
+        $closedAt   = $status === 'Closed' ? fake()->dateTimeBetween($resolvedAt, 'now') : null;
+
         return [
             'ticket_number' => 'TCK-'.now()->year.'-'.str_pad((string) fake()->unique()->numberBetween(1, 999999), 6, '0', STR_PAD_LEFT),
             'title' => fake()->randomElement([
-                'Internet mati total sejak pagi', 'Lampu modem berkedip merah (LOS)', 
-                'Koneksi sangat lambat', 'Tidak bisa login ke aplikasi pelanggan', 
+                'Internet mati total sejak pagi', 'Lampu modem berkedip merah (LOS)',
+                'Koneksi sangat lambat', 'Tidak bisa login ke aplikasi pelanggan',
                 'Tagihan bulan ini tidak sesuai', 'Lupa password wifi',
                 'Ingin upgrade kecepatan internet', 'Koneksi sering terputus tiba-tiba'
             ]),
             'description' => fake()->paragraph(3),
-            'status' => fake()->randomElement(['Open', 'Assigned', 'In Progress', 'Waiting for Customer', 'Resolved', 'Closed', 'Reopened', 'Escalated']),
-            'priority_id' => Priority::factory(),
-            'category_id' => Category::factory(),
-            'created_by' => User::factory()->customer(),
+            'status'           => $status,
+            'priority_id'      => Priority::factory(),
+            'category_id'      => Category::factory(),
+            'created_by'       => User::factory()->customer(),
             'assigned_agent_id' => null,
-            'due_at' => now()->addHours(fake()->numberBetween(8, 120)),
-            'resolved_at' => null,
-            'closed_at' => null,
+            'due_at'           => now()->addHours(fake()->numberBetween(8, 120)),
+            'resolved_at'      => $resolvedAt,
+            'closed_at'        => $closedAt,
         ];
     }
 
