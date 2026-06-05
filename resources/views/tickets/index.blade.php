@@ -146,7 +146,7 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm text-gray-900">{{ $ticket->category->name ?? '-' }}</div>
-                                        <div class="text-sm" style="color: {{ $ticket->priority->color ?? '#6b7280' }}">{{ $ticket->priority->name ?? '-' }}</div>
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium" style="color:{{ $ticket->priority->color ?? '#6b7280' }};background-color:{{ $ticket->priority->color ?? '#6b7280' }}20">{{ $ticket->priority->name ?? '-' }}</span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         @php

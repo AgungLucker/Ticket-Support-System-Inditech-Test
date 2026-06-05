@@ -73,6 +73,7 @@
                                 @if($ticket->due_at && $ticket->due_at->isPast() && !in_array($ticket->status, ['Resolved', 'Closed']))
                                     <span class="text-xs font-medium text-red-600">Overdue</span>
                                 @endif
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium" style="color:{{ $ticket->priority->color ?? '#6b7280' }};background-color:{{ $ticket->priority->color ?? '#6b7280' }}20">{{ $ticket->priority->name ?? '-' }}</span>
                             </div>
                             <p class="mt-0.5 text-sm font-medium text-gray-800 truncate group-hover:text-indigo-600">
                                 {{ $ticket->title }}

@@ -177,7 +177,31 @@
             </div>
 
             <!-- Sidebar -->
-            <div class="w-full md:w-1/3 space-y-4">
+            <div class="w-full md:w-1/3 space-y-4" x-data="ticketConfirm()">
+
+                {{-- Confirmation Modal --}}
+                <div x-show="open" class="fixed inset-0 z-50" style="display:none;">
+                    <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" @click="open = false"></div>
+                    <div class="fixed inset-0 z-10 overflow-y-auto flex items-center justify-center p-4">
+                        <div class="w-full max-w-sm bg-white rounded-2xl shadow-xl">
+                            <div class="p-6">
+                                <h3 class="text-base font-bold text-gray-900" x-text="title"></h3>
+                                <p class="mt-2 text-sm text-gray-600" x-text="message"></p>
+                            </div>
+                            <div class="bg-gray-50 px-6 py-4 flex justify-end gap-3 rounded-b-2xl">
+                                <button type="button" @click="open = false"
+                                    class="px-4 py-2 rounded-xl bg-white border border-gray-300 text-sm text-gray-700 hover:bg-gray-50">
+                                    Batal
+                                </button>
+                                <button type="button" @click="doConfirm()"
+                                    class="px-4 py-2 rounded-xl text-sm text-white font-semibold transition"
+                                    :class="danger ? 'bg-rose-600 hover:bg-rose-700' : 'bg-indigo-600 hover:bg-indigo-700'">
+                                    <span x-text="confirmLabel"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 {{-- Update Status --}}
                 @can('updateStatus', $ticket)
@@ -185,7 +209,8 @@
                         <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                             <div class="p-5">
                                 <h3 class="text-sm font-semibold text-gray-700 mb-3">Ubah Status</h3>
-                                <form method="POST" action="{{ route('tickets.updateStatus', $ticket) }}" class="flex gap-2">
+                                <form id="status-form" method="POST" action="{{ route('tickets.updateStatus', $ticket) }}" class="flex gap-2"
+                                      @submit.prevent="checkStatus($el)">
                                     @csrf
                                     @method('PATCH')
                                     <select name="status" class="flex-1 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm">
@@ -239,8 +264,8 @@
                             </div>
                             <div>
                                 <dt class="text-xs font-medium text-gray-400 uppercase">Prioritas</dt>
-                                <dd class="mt-1 font-semibold" style="color: {{ $ticket->priority->color ?? '#6b7280' }}">
-                                    {{ $ticket->priority->name ?? '-' }}
+                                <dd class="mt-1">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium" style="color:{{ $ticket->priority->color ?? '#6b7280' }};background-color:{{ $ticket->priority->color ?? '#6b7280' }}20">{{ $ticket->priority->name ?? '-' }}</span>
                                 </dd>
                             </div>
                             <div>
@@ -283,11 +308,13 @@
 
                 @can('reopen', $ticket)
                     @if(in_array('Reopened', $allowedStatuses))
-                        <form method="POST" action="{{ route('tickets.updateStatus', $ticket) }}">
+                        <form id="reopen-form" method="POST" action="{{ route('tickets.updateStatus', $ticket) }}">
                             @csrf
                             @method('PATCH')
                             <input type="hidden" name="status" value="Reopened">
-                            <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold py-2 px-4 rounded-md transition">
+                            <button type="button"
+                                @click="ask('Buka Kembali Tiket?', 'Tiket ini akan dibuka kembali dan masuk ke antrean.', 'Buka Kembali', false, () => $el.closest('form').submit())"
+                                class="w-full bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold py-2 px-4 rounded-md transition">
                                 Buka Kembali Tiket
                             </button>
                         </form>
@@ -296,4 +323,45 @@
             </div>
         </div>
     </div>
+
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('ticketConfirm', () => ({
+        open: false,
+        title: '',
+        message: '',
+        confirmLabel: '',
+        danger: false,
+        _callback: null,
+
+        ask(title, message, confirmLabel, danger, callback) {
+            this.title        = title;
+            this.message      = message;
+            this.confirmLabel = confirmLabel;
+            this.danger       = danger;
+            this._callback    = callback;
+            this.open         = true;
+        },
+
+        doConfirm() {
+            this.open = false;
+            if (this._callback) this._callback();
+        },
+
+        checkStatus(form) {
+            const status = form.querySelector('[name=status]').value;
+            const config = {
+                'Closed':    { msg: 'Tiket akan ditutup. Hanya bisa dibuka kembali secara manual.', danger: true,  label: 'Tutup Tiket' },
+                'Escalated': { msg: 'Tiket akan dieskalasi ke Supervisor / Admin.',                 danger: false, label: 'Eskalasi' },
+            };
+            if (config[status]) {
+                const c = config[status];
+                this.ask('Konfirmasi: ' + status, c.msg, c.label, c.danger, () => form.submit());
+            } else {
+                form.submit();
+            }
+        },
+    }));
+});
+</script>
 </x-app-layout>

@@ -86,9 +86,7 @@
                                 </span>
                             </td>
                             <td class="py-3 pr-4">
-                                <span class="text-sm" style="color: {{ $ticket->priority->color ?? '#6b7280' }}">
-                                    {{ $ticket->priority->name ?? '-' }}
-                                </span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium" style="color:{{ $ticket->priority->color ?? '#6b7280' }};background-color:{{ $ticket->priority->color ?? '#6b7280' }}20">{{ $ticket->priority->name ?? '-' }}</span>
                             </td>
                             <td class="py-3 text-right text-xs text-gray-400">
                                 {{ $ticket->updated_at->diffForHumans() }}
