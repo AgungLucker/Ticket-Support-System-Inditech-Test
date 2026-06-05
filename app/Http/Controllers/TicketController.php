@@ -306,6 +306,74 @@ class TicketController extends Controller
         return back()->with('success', 'Status tiket berhasil diperbarui.');
     }
 
+    public function export(Request $request)
+    {
+        $user = Auth::user();
+
+        if (! $user->isAdmin() && ! $user->isSupervisor()) {
+            abort(403);
+        }
+
+        $query = Ticket::query()->with(['category', 'priority', 'creator', 'assignedAgent']);
+
+        if ($user->isSupervisor()) {
+            $query->whereHas('assignedAgent', fn($q) => $q->where('team_id', $user->team_id));
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('priority_id')) {
+            $query->where('priority_id', $request->priority_id);
+        }
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+        if ($request->filled('assigned_agent_id')) {
+            $query->where('assigned_agent_id', $request->assigned_agent_id);
+        }
+        if ($request->filled('from_date')) {
+            $query->whereDate('created_at', '>=', $request->from_date);
+        }
+        if ($request->filled('to_date')) {
+            $query->whereDate('created_at', '<=', $request->to_date);
+        }
+
+        $tickets  = $query->orderBy('created_at', 'desc')->get();
+        $filename = 'tickets-' . now()->format('Ymd-His') . '.csv';
+
+        $callback = function () use ($tickets) {
+            $handle = fopen('php://output', 'w');
+            // UTF-8 BOM for Excel compatibility
+            fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fputcsv($handle, [
+                'Ticket Number', 'Title', 'Status', 'Priority', 'Category',
+                'Requester', 'Assigned Agent', 'Created At', 'Due At', 'Resolved At', 'Closed At',
+            ]);
+            foreach ($tickets as $ticket) {
+                fputcsv($handle, [
+                    $ticket->ticket_number,
+                    $ticket->title,
+                    $ticket->status,
+                    $ticket->priority?->name ?? '-',
+                    $ticket->category?->name ?? '-',
+                    $ticket->creator?->name ?? '-',
+                    $ticket->assignedAgent?->name ?? '-',
+                    $ticket->created_at->format('Y-m-d H:i:s'),
+                    $ticket->due_at?->format('Y-m-d H:i:s') ?? '-',
+                    $ticket->resolved_at?->format('Y-m-d H:i:s') ?? '-',
+                    $ticket->closed_at?->format('Y-m-d H:i:s') ?? '-',
+                ]);
+            }
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ]);
+    }
+
     public function assign(Request $request, Ticket $ticket)
     {
         Gate::authorize('assign', $ticket);

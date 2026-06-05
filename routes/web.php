@@ -22,6 +22,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    Route::get('tickets/export', [TicketController::class, 'export'])->name('tickets.export');
     Route::resource('tickets', TicketController::class)->except(['destroy']);
     Route::patch('tickets/{ticket}/status', [TicketController::class, 'updateStatus'])->name('tickets.updateStatus');
     Route::post('tickets/{ticket}/assign', [TicketController::class, 'assign'])->name('tickets.assign');

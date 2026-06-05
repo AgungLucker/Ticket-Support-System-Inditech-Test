@@ -4,11 +4,19 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 {{ __('Daftar Tiket') }}
             </h2>
-            @can('create', App\Models\Ticket::class)
-                <a href="{{ route('tickets.create') }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition">
-                    Buat Tiket Baru
-                </a>
-            @endcan
+            <div class="flex gap-2">
+                @if(Auth::user()->isAdmin() || Auth::user()->isSupervisor())
+                    <a href="{{ route('tickets.export', request()->only(['status', 'priority_id', 'category_id', 'assigned_agent_id', 'from_date', 'to_date'])) }}"
+                       class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition text-sm">
+                        Export CSV
+                    </a>
+                @endif
+                @can('create', App\Models\Ticket::class)
+                    <a href="{{ route('tickets.create') }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition">
+                        Buat Tiket Baru
+                    </a>
+                @endcan
+            </div>
         </div>
     </x-slot>
 
