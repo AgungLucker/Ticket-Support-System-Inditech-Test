@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
@@ -28,6 +29,7 @@ Route::middleware('auth')->group(function () {
     Route::get('attachments/{attachment}', [AttachmentController::class, 'show'])->name('attachments.show');
     Route::post('notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
     Route::get('notifications/{id}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+    Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
 });
 
 require __DIR__.'/auth.php';
