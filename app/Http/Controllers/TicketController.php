@@ -48,8 +48,11 @@ class TicketController extends Controller
             // Agent: hanya tiket yang ditugaskan ke dia saja
             $query->where('assigned_agent_id', $user->id);
         } elseif ($user->isSupervisor()) {
-            // Supervisor: hanya tiket dari agent dalam timnya
-            $query->whereHas('assignedAgent', fn($q) => $q->where('team_id', $user->team_id));
+            if ($user->team_id === null) {
+                $query->whereRaw('0 = 1');
+            } else {
+                $query->whereHas('assignedAgent', fn($q) => $q->where('team_id', $user->team_id));
+            }
         }
 
         // Filter pencarian
@@ -317,7 +320,11 @@ class TicketController extends Controller
         $query = Ticket::query()->with(['category', 'priority', 'creator', 'assignedAgent']);
 
         if ($user->isSupervisor()) {
-            $query->whereHas('assignedAgent', fn($q) => $q->where('team_id', $user->team_id));
+            if ($user->team_id === null) {
+                $query->whereRaw('0 = 1');
+            } else {
+                $query->whereHas('assignedAgent', fn($q) => $q->where('team_id', $user->team_id));
+            }
         }
 
         if ($request->filled('status')) {

@@ -95,7 +95,7 @@
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100 bg-white">
-                                @foreach($logs as $log)
+                                @forelse($logs as $log)
                                     @php
                                         $badge     = $actionMap[$log->action] ?? ['label' => $log->action, 'class' => 'bg-gray-100 text-gray-600'];
                                         $roleSlug  = $log->user?->role?->slug;
@@ -153,7 +153,17 @@
                                             </td>
                                         @endif
                                     </tr>
-                                @endforeach
+                                @empty
+                                    <tr>
+                                        <td colspan="{{ $isCustomer ? 3 : 5 }}" class="px-6 py-12 text-center">
+                                            <svg class="mx-auto h-10 w-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                            </svg>
+                                            <p class="mt-2 text-sm font-medium text-gray-900">Belum ada aktivitas</p>
+                                            <p class="mt-1 text-xs text-gray-500">Log akan muncul saat ada perubahan pada tiket.</p>
+                                        </td>
+                                    </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>

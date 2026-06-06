@@ -110,7 +110,7 @@ class UserController extends Controller
     {
         $role = Role::findOrFail($data['role_id']);
 
-        if (in_array($role->slug, ['admin', 'customer'], true)) {
+        if (in_array($role->slug, ['admin', 'customer', 'supervisor'], true)) {
             $data['team_id'] = null;
         }
 

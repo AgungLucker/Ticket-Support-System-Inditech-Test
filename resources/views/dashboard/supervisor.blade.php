@@ -39,7 +39,7 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
-                    @foreach($agents as $agent)
+                    @forelse($agents as $agent)
                         @php
                             $avgH   = $agentResolution[$agent->id] ?? null;
                             $avgH   = $avgH !== null ? (int) round($avgH) : null;
@@ -68,7 +68,11 @@
                             </td>
                             <td class="py-3 text-right text-gray-600">{{ $avgFmt }}</td>
                         </tr>
-                    @endforeach
+                    @empty
+                        <tr>
+                            <td colspan="4" class="py-8 text-center text-sm text-gray-400">Belum ada agent dalam tim ini.</td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>

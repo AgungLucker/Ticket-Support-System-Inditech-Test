@@ -22,9 +22,13 @@ class ActivityLogController extends Controller
             $query->whereHas('ticket', fn($q) => $q->where('created_by', $user->id))
                   ->whereNotIn('action', ['internal_note_added']);
         } elseif ($user->isSupervisor()) {
-            $query->whereHas('ticket', fn($q) =>
-                $q->whereHas('assignedAgent', fn($q2) => $q2->where('team_id', $user->team_id))
-            );
+            if ($user->team_id === null) {
+                $query->whereRaw('0 = 1');
+            } else {
+                $query->whereHas('ticket', fn($q) =>
+                    $q->whereHas('assignedAgent', fn($q2) => $q2->where('team_id', $user->team_id))
+                );
+            }
         }
 
         if ($request->filled('search')) {

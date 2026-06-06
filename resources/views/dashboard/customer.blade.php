@@ -68,7 +68,7 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
-                    @foreach($recentTickets as $ticket)
+                    @forelse($recentTickets as $ticket)
                         <tr class="hover:bg-gray-50">
                             <td class="py-3 pr-4">
                                 <a href="{{ route('tickets.show', $ticket) }}" class="font-mono text-xs text-indigo-600 hover:underline">
@@ -92,7 +92,11 @@
                                 {{ $ticket->updated_at->diffForHumans() }}
                             </td>
                         </tr>
-                    @endforeach
+                    @empty
+                        <tr>
+                            <td colspan="5" class="py-8 text-center text-sm text-gray-400">Belum ada tiket yang dibuat.</td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>

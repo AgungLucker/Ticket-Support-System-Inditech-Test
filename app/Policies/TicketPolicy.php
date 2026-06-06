@@ -44,8 +44,7 @@ class TicketPolicy
 
     public function assign(User $user, Ticket $ticket): bool
     {
-        return $user->isSupervisor()
-            && ($ticket->assigned_agent_id === null || $this->isSupervisorForTicket($user, $ticket));
+        return $user->isSupervisor() && $this->isSupervisorForTicket($user, $ticket);
     }
 
     public function addComment(User $user, Ticket $ticket): bool

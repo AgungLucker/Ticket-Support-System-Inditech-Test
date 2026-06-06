@@ -27,4 +27,9 @@ class Team extends Model
     {
         return $this->hasMany(User::class);
     }
+
+    public function agents(): HasMany
+    {
+        return $this->hasMany(User::class)->whereHas('role', fn($q) => $q->where('slug', 'agent'));
+    }
 }

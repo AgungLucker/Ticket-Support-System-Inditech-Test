@@ -176,7 +176,7 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
-                    @foreach($topAgents as $i => $agent)
+                    @forelse($topAgents as $i => $agent)
                         <tr>
                             <td class="py-2.5 pr-4 text-gray-400 font-medium">{{ $i + 1 }}</td>
                             <td class="py-2.5 pr-4 font-medium text-gray-800">{{ $agent->name }}</td>
@@ -187,7 +187,11 @@
                                 </span>
                             </td>
                         </tr>
-                    @endforeach
+                    @empty
+                        <tr>
+                            <td colspan="4" class="py-8 text-center text-sm text-gray-400">Belum ada agent dengan tiket terselesaikan.</td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>

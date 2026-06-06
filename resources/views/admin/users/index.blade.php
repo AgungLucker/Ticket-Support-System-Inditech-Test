@@ -131,7 +131,7 @@
                 showModal: false,
                 editMode: false,
                 formAction: '{{ route('admin.users.store') }}',
-                teamRoleIds: @js($roles->whereIn('slug', ['agent', 'supervisor'])->pluck('id')->map(fn ($id) => (string) $id)->values()),
+                teamRoleIds: @js($roles->where('slug', 'agent')->pluck('id')->map(fn ($id) => (string) $id)->values()),
                 form: { name: '', email: '', phone: '', role_id: '', team_id: '' },
                 openAddModal() {
                     this.editMode = false;

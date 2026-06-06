@@ -85,9 +85,14 @@ class DatabaseSeeder extends Seeder
             Label::updateOrCreate(['slug' => $label['slug']], $label);
         }
 
-        $supportTeam = Team::updateOrCreate(
-            ['name' => 'Support Team'],
-            ['description' => 'Default support operations team'],
+        $teamA = Team::updateOrCreate(
+            ['name' => 'Support Team A'],
+            ['description' => 'Tier 1 — general inquiries and billing'],
+        );
+
+        $teamB = Team::updateOrCreate(
+            ['name' => 'Support Team B'],
+            ['description' => 'Tier 2 — technical and escalated issues'],
         );
 
         $password = Hash::make('password');
@@ -102,25 +107,36 @@ class DatabaseSeeder extends Seeder
             ],
         );
 
-        $supervisor = User::updateOrCreate(
+        $supervisorA = User::updateOrCreate(
             ['email' => 'supervisor@admin.com'],
             [
-                'name' => 'Supervisor',
+                'name' => 'Supervisor A',
                 'password' => $password,
                 'role_id' => Role::where('slug', 'supervisor')->value('id'),
-                'team_id' => $supportTeam->id,
+                'team_id' => $teamA->id,
             ],
         );
 
-        $supportTeam->update(['supervisor_id' => $supervisor->id]);
+        $supervisorB = User::updateOrCreate(
+            ['email' => 'supervisor2@admin.com'],
+            [
+                'name' => 'Supervisor B',
+                'password' => $password,
+                'role_id' => Role::where('slug', 'supervisor')->value('id'),
+                'team_id' => $teamB->id,
+            ],
+        );
+
+        $teamA->update(['supervisor_id' => $supervisorA->id]);
+        $teamB->update(['supervisor_id' => $supervisorB->id]);
 
         User::updateOrCreate(
             ['email' => 'agent@admin.com'],
             [
-                'name' => 'Agent',
+                'name' => 'Agent A',
                 'password' => $password,
                 'role_id' => Role::where('slug', 'agent')->value('id'),
-                'team_id' => $supportTeam->id,
+                'team_id' => $teamA->id,
             ],
         );
 
@@ -135,12 +151,15 @@ class DatabaseSeeder extends Seeder
         );
 
         // ==========================================
-        // DUMMY DATA GENERATOR 
+        // DUMMY DATA GENERATOR
         // ==========================================
-        
-        // Buat tambahan 10 customer dan 5 agent agar data bervariasi
+
+        // 3 agent team A, 3 agent team B
+        User::factory(3)->agent()->create(['team_id' => $teamA->id]);
+        User::factory(3)->agent()->create(['team_id' => $teamB->id]);
         User::factory(10)->customer()->create();
-        User::factory(5)->agent()->create(['team_id' => $supportTeam->id]);
+
+        $supportTeam = $teamA; // alias untuk kompatibilitas baris di bawah
 
         $admin     = User::where('email', 'admin@admin.com')->first();
         $customers = User::where('role_id', Role::where('slug', 'customer')->value('id'))->get();
