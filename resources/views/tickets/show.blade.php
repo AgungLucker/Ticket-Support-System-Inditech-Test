@@ -302,6 +302,20 @@
                                     @endif
                                 </dd>
                             </div>
+
+                            @if($ticket->resolved_at)
+                            <div>
+                                <dt class="text-xs font-medium text-gray-400 uppercase">Diselesaikan</dt>
+                                <dd class="mt-1 text-gray-900">{{ $ticket->resolved_at->format('d M Y, H:i') }}</dd>
+                            </div>
+                            @endif
+
+                            @if($ticket->closed_at)
+                            <div>
+                                <dt class="text-xs font-medium text-gray-400 uppercase">Ditutup</dt>
+                                <dd class="mt-1 text-gray-900">{{ $ticket->closed_at->format('d M Y, H:i') }}</dd>
+                            </div>
+                            @endif
                         </dl>
                     </div>
                 </div>
