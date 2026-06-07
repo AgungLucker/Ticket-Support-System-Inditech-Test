@@ -48,6 +48,37 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
+        if ($user->isAgent()) {
+            $activeStatuses = ['Open', 'Assigned', 'In Progress', 'Waiting for Customer', 'Reopened', 'Escalated'];
+            if ($user->assignedTickets()->whereIn('status', $activeStatuses)->exists()) {
+                return Redirect::route('profile.edit')->withErrors([
+                    'userDeletion' => 'Akun tidak dapat dihapus karena masih ada tiket aktif yang ditugaskan kepada Anda.',
+                ], 'userDeletion');
+            }
+        }
+
+        if ($user->isSupervisor() && $user->supervisedTeams()->exists()) {
+            return Redirect::route('profile.edit')->withErrors([
+                'userDeletion' => 'Akun tidak dapat dihapus karena Anda masih menjadi supervisor dari sebuah tim.',
+            ], 'userDeletion');
+        }
+
+        if ($user->isAdmin()) {
+            $adminRole = \App\Models\Role::where('slug', 'admin')->first();
+            $adminCount = \App\Models\User::where('role_id', $adminRole?->id)->count();
+            if ($adminCount <= 1) {
+                return Redirect::route('profile.edit')->withErrors([
+                    'userDeletion' => 'Akun tidak dapat dihapus karena Anda adalah satu-satunya admin di sistem.',
+                ], 'userDeletion');
+            }
+        }
+
+        if ($user->isCustomer() && $user->createdTickets()->exists()) {
+            return Redirect::route('profile.edit')->withErrors([
+                'userDeletion' => 'Akun tidak dapat dihapus karena masih ada riwayat tiket yang terkait dengan akun Anda.',
+            ], 'userDeletion');
+        }
+
         Auth::logout();
 
         $user->delete();
