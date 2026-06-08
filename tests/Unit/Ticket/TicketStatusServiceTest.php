@@ -65,6 +65,21 @@ class TicketStatusServiceTest extends TestCase
         $this->assertTrue($this->service->canTransition('Escalated', 'In Progress'));
     }
 
+    public function test_escalated_bisa_ke_resolved(): void
+    {
+        $this->assertTrue($this->service->canTransition('Escalated', 'Resolved'));
+    }
+
+    public function test_escalated_tidak_bisa_ke_assigned(): void
+    {
+        $this->assertFalse($this->service->canTransition('Escalated', 'Assigned'));
+    }
+
+    public function test_waiting_for_customer_tidak_bisa_ke_closed(): void
+    {
+        $this->assertFalse($this->service->canTransition('Waiting for Customer', 'Closed'));
+    }
+
     public function test_open_tidak_bisa_langsung_ke_resolved(): void
     {
         $this->assertFalse($this->service->canTransition('Open', 'Resolved'));

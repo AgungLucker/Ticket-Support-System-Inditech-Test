@@ -15,11 +15,11 @@ class TicketStatusService
         'Open'                 => ['Assigned', 'Closed'],
         'Assigned'             => ['In Progress', 'Escalated'],
         'In Progress'          => ['Waiting for Customer', 'Resolved', 'Escalated'],
-        'Waiting for Customer' => ['In Progress', 'Resolved', 'Closed'],
+        'Waiting for Customer' => ['In Progress', 'Resolved'],
         'Resolved'             => ['Closed', 'Reopened'],
         'Closed'               => ['Reopened'],
         'Reopened'             => ['Assigned', 'In Progress'],
-        'Escalated'            => ['Assigned', 'In Progress'],
+        'Escalated'            => ['In Progress', 'Resolved'],
     ];
 
     /**
@@ -74,6 +74,17 @@ class TicketStatusService
      * - Agent: can update status of their assigned ticket (except Assign/Reassign)
      * - Supervisor/Admin: unrestricted (handled by Policy)
      */
+    /**
+     * Determines the correct status when a ticket is assigned.
+     * Open tickets become Assigned; all other statuses stay unchanged.
+     */
+    public function statusAfterAssign(string $currentStatus): string
+    {
+        return in_array($currentStatus, ['Open', 'Reopened'], true)
+            ? 'Assigned'
+            : $currentStatus;
+    }
+
     public function canUserTransition(User $user, Ticket $ticket, string $newStatus): bool
     {
         if (! $this->canTransition($ticket->status, $newStatus)) {

@@ -37,7 +37,7 @@ class TicketCreated extends Notification implements ShouldQueue
             'ticket_number' => $this->ticket->ticket_number,
             'title'         => $this->ticket->title,
             'message'       => "Tiket baru dibuat oleh {$this->ticket->creator->name}.",
-            'url'           => route('tickets.show', $this->ticket),
+            'url'           => route('tickets.show', $this->ticket, absolute: false),
         ];
     }
 }

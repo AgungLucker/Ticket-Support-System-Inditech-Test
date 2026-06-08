@@ -12,7 +12,9 @@ use App\Models\Team;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
@@ -90,6 +92,20 @@ class DatabaseSeeder extends Seeder
             ['description' => 'Tier 3 — account and security issues']
         );
 
+        // ── Demo credentials (required by spec)
+        User::updateOrCreate(['email' => 'admin@admin.com'], [
+            'name' => 'Admin Demo', 'password' => Hash::make('password'), 'role_id' => $adminRole, 'team_id' => null,
+        ]);
+        User::updateOrCreate(['email' => 'supervisor@admin.com'], [
+            'name' => 'Supervisor Demo', 'password' => Hash::make('password'), 'role_id' => $supervisorRole, 'team_id' => $teamA->id,
+        ]);
+        User::updateOrCreate(['email' => 'agent@admin.com'], [
+            'name' => 'Agent Demo', 'password' => Hash::make('password'), 'role_id' => $agentRole, 'team_id' => $teamA->id,
+        ]);
+        User::updateOrCreate(['email' => 'customer@demo.com'], [
+            'name' => 'Customer Demo', 'password' => Hash::make('password'), 'role_id' => $customerRole, 'team_id' => null,
+        ]);
+
         // ── Admins (3 usesrs)
         $adminPwd = Hash::make('admin1234');
         foreach (range(1, 3) as $n) {
@@ -165,12 +181,10 @@ class DatabaseSeeder extends Seeder
             ->create()
             ->each(function ($ticket) use ($agents, $allUsers, $admin) {
 
-                if (rand(1, 10) > 4) {
-                    $assignedAgent = $agents->random();
-                    $ticket->update([
-                        'status'            => rand(1, 10) > 5 ? 'In Progress' : 'Assigned',
-                        'assigned_agent_id' => $assignedAgent->id,
-                    ]);
+                // Assign agent to all non-Open tickets so resolved_count is populated in dashboard
+                if ($ticket->status !== 'Open') {
+                    $ticket->update(['assigned_agent_id' => $agents->random()->id]);
+                    $ticket->refresh();
                 }
 
                 $ticket->labels()->attach(
@@ -181,8 +195,6 @@ class DatabaseSeeder extends Seeder
                     ->recycle($ticket)
                     ->recycle($allUsers)
                     ->create();
-
-                $ticket->refresh();
 
                 ActivityLog::create([
                     'ticket_id' => $ticket->id,
@@ -210,5 +222,60 @@ class DatabaseSeeder extends Seeder
                     ]);
                 }
             });
+
+        // ── Guaranteed overdue ticket for demo
+        $overdueTicket = \App\Models\Ticket::create([
+            'ticket_number'     => 'TCK-' . now()->year . '-999999',
+            'title'             => 'Internet mati total - SLA terlewat',
+            'description'       => 'Koneksi internet pelanggan mati total dan SLA sudah terlewati. Belum ada penanganan.',
+            'status'            => 'In Progress',
+            'priority_id'       => Priority::where('slug', 'critical')->value('id'),
+            'category_id'       => Category::where('slug', 'technical-support')->value('id'),
+            'created_by'        => $customers->first()->id,
+            'assigned_agent_id' => $agents->first()->id,
+            'due_at'            => now()->subHours(6),
+            'response_due_at'   => now()->subHours(10),
+            'created_at'        => now()->subDay(),
+        ]);
+
+        ActivityLog::create([
+            'ticket_id' => $overdueTicket->id,
+            'user_id'   => $overdueTicket->created_by,
+            'action'    => 'ticket_created',
+        ]);
+        ActivityLog::create([
+            'ticket_id' => $overdueTicket->id,
+            'user_id'   => $admin->id,
+            'action'    => 'ticket_assigned',
+            'old_value' => null,
+            'new_value' => $overdueTicket->assignedAgent->name,
+        ]);
+        ActivityLog::create([
+            'ticket_id' => $overdueTicket->id,
+            'user_id'   => $admin->id,
+            'action'    => 'sla_overdue',
+        ]);
+
+        // Seed overdue notification so admins/supervisors see it on first login
+        $notifData = json_encode([
+            'ticket_id'     => $overdueTicket->id,
+            'ticket_number' => $overdueTicket->ticket_number,
+            'title'         => $overdueTicket->title,
+            'message'       => "Tiket #{$overdueTicket->ticket_number} melewati batas SLA.",
+            'url'           => route('tickets.show', $overdueTicket, absolute: false),
+        ]);
+
+        User::whereHas('role', fn($q) => $q->whereIn('slug', ['admin', 'supervisor']))
+            ->get()
+            ->each(fn($u) => DB::table('notifications')->insert([
+                'id'              => (string) Str::uuid(),
+                'type'            => \App\Notifications\TicketSlaOverdue::class,
+                'notifiable_type' => User::class,
+                'notifiable_id'   => $u->id,
+                'data'            => $notifData,
+                'read_at'         => null,
+                'created_at'      => now(),
+                'updated_at'      => now(),
+            ]));
     }
 }

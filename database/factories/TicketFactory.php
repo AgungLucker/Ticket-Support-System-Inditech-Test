@@ -42,8 +42,12 @@ class TicketFactory extends Factory
             'category_id'      => Category::factory(),
             'created_by'       => User::factory()->customer(),
             'assigned_agent_id' => null,
-            'due_at'           => (clone $createdAt)->modify('+'.fake()->numberBetween(24, 120).' hours'),
-            'response_due_at'  => (clone $createdAt)->modify('+'.fake()->numberBetween(1, 24).' hours'),
+            // Terminal tickets: due_at relative to creation (excluded from overdue detection anyway).
+            // Active tickets: always in the future so only the explicitly seeded ticket is overdue.
+            'due_at'          => in_array($status, ['Resolved', 'Closed'])
+                ? (clone $createdAt)->modify('+' . fake()->numberBetween(24, 120) . ' hours')
+                : now()->addHours(fake()->numberBetween(24, 120)),
+            'response_due_at' => (clone $createdAt)->modify('+' . fake()->numberBetween(1, 24) . ' hours'),
             'resolved_at'      => $resolvedAt,
             'closed_at'        => $closedAt,
         ];

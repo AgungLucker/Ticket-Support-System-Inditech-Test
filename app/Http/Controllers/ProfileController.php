@@ -52,14 +52,14 @@ class ProfileController extends Controller
             $activeStatuses = ['Open', 'Assigned', 'In Progress', 'Waiting for Customer', 'Reopened', 'Escalated'];
             if ($user->assignedTickets()->whereIn('status', $activeStatuses)->exists()) {
                 return Redirect::route('profile.edit')->withErrors([
-                    'userDeletion' => 'Akun tidak dapat dihapus karena masih ada tiket aktif yang ditugaskan kepada Anda.',
+                    'userDeletion' => 'Akun tidak dapat dihapus karena masih ada tiket aktif yang di-assign kepada Anda.',
                 ], 'userDeletion');
             }
         }
 
         if ($user->isSupervisor() && $user->supervisedTeams()->exists()) {
             return Redirect::route('profile.edit')->withErrors([
-                'userDeletion' => 'Akun tidak dapat dihapus karena Anda masih menjadi supervisor dari sebuah tim.',
+                'userDeletion' => 'Akun tidak dapat dihapus karena Anda masih menjadi supervisor dari sebuah team.',
             ], 'userDeletion');
         }
 

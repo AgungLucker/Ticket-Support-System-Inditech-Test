@@ -28,7 +28,7 @@ class UserPolicy
 
     public function update(User $user, User $model): bool
     {
-        return $user->id === $model->id;
+        return false; // Admin only, handled by before()
     }
 
     public function delete(User $user, User $model): bool

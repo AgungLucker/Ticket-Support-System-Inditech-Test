@@ -19,7 +19,8 @@ class CheckOverdueTickets extends Command
     {
         $overdueTickets = Ticket::whereNotNull('due_at')
             ->where('due_at', '<', now())
-            ->whereNotIn('status', ['Resolved', 'Closed'])
+            ->whereNotIn('status', ['Resolved', 'Closed', 'Waiting for Customer'])
+            ->whereDoesntHave('activityLogs', fn($q) => $q->where('action', 'sla_overdue'))
             ->with(['creator', 'priority'])
             ->get();
 

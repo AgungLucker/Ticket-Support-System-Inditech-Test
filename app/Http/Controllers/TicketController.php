@@ -10,28 +10,19 @@ use App\Models\Label;
 use App\Models\Priority;
 use App\Models\Ticket;
 use App\Models\User;
-use App\Notifications\TicketAssigned;
-use App\Notifications\TicketCreated;
-use App\Notifications\TicketEscalated;
-use App\Notifications\TicketResolved;
 use App\Services\ActivityLogger;
 use App\Services\TicketService;
 use App\Services\TicketStatusService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Notification;
 
 class TicketController extends Controller
 {
-    protected $ticketService;
-    protected $statusService;
-
-    public function __construct(TicketService $ticketService, TicketStatusService $statusService)
-    {
-        $this->ticketService = $ticketService;
-        $this->statusService = $statusService;
-    }
+    public function __construct(
+        protected TicketService $ticketService,
+        protected TicketStatusService $statusService,
+    ) {}
 
     public function index(Request $request)
     {
@@ -86,7 +77,7 @@ class TicketController extends Controller
         if ($request->filled('overdue') && $request->overdue === '1') {
             $query->whereNotNull('due_at')
                   ->where('due_at', '<', now())
-                  ->whereNotIn('status', ['Resolved', 'Closed']);
+                  ->whereNotIn('status', ['Resolved', 'Closed', 'Waiting for Customer']);
         }
 
         // Filter label
@@ -169,44 +160,10 @@ class TicketController extends Controller
             ? $ticketData['created_by']
             : Auth::id();
 
-        $ticket = Ticket::create([
-            'ticket_number' => $this->ticketService->generateTicketNumber(),
-            'title'         => $ticketData['title'],
-            'description'   => $ticketData['description'],
-            'category_id'   => $ticketData['category_id'],
-            'priority_id'   => $ticketData['priority_id'],
-            'created_by'      => $createdBy,
-            'status'          => 'Open',
-            'due_at'          => $this->ticketService->calculateSlaDueDate($ticketData['priority_id']),
-            'response_due_at' => $this->ticketService->calculateResponseDueDate($ticketData['priority_id']),
-        ]);
+        $files  = $request->hasFile('attachments') ? $request->file('attachments') : null;
+        $ticket = $this->ticketService->createTicket($ticketData, $createdBy, $files, Auth::id());
 
-        if (!empty($ticketData['label_ids'])) {
-            $ticket->labels()->sync($ticketData['label_ids']);
-        }
-
-        if ($request->hasFile('attachments')) {
-            foreach ($request->file('attachments') as $file) {
-                if (!$file->isValid()) {
-                    continue; // Skip file yang gagal terunggah
-                }
-                $path = $file->store('attachments');
-                $ticket->attachments()->create([
-                    'path' => $path,
-                    'original_name' => $file->getClientOriginalName(),
-                    'stored_name' => basename($path),
-                    'mime_type' => $file->getClientMimeType(),
-                    'size' => $file->getSize(),
-                    'uploaded_by' => Auth::id(),
-                ]);
-                ActivityLogger::log($ticket, 'attachment_uploaded', 'ticket', $file->getClientOriginalName());
-            }
-        }
-
-        ActivityLogger::log($ticket, 'ticket_created');
-
-        $admins = User::whereHas('role', fn($q) => $q->where('slug', 'admin'))->get();
-        Notification::send($admins, new TicketCreated($ticket));
+        $this->ticketService->notifyCreated($ticket);
 
         return redirect()->route('tickets.index')->with('success', 'Tiket berhasil dibuat.');
     }
@@ -290,33 +247,17 @@ class TicketController extends Controller
             return back()->withErrors(['status' => 'Transisi status tidak diizinkan.']);
         }
 
-        $oldStatus = $ticket->status;
-
-        $ticket->update(array_merge(
-            ['status' => $newStatus],
-            $this->statusService->timestampUpdates($newStatus)
-        ));
-
-        ActivityLogger::log($ticket, 'status_changed', $oldStatus, $newStatus);
-
-        if ($newStatus === 'Resolved') {
-            $ticket->creator->notify(new TicketResolved($ticket));
-        } elseif ($newStatus === 'Escalated') {
-            $supervisorsAndAdmins = User::whereHas('role', fn($q) => $q->whereIn('slug', ['supervisor', 'admin']))->get();
-            Notification::send($supervisorsAndAdmins, new TicketEscalated($ticket));
-        }
+        $this->ticketService->updateStatus($ticket, $newStatus);
+        $this->ticketService->notifyStatusChanged($ticket, $newStatus);
 
         return back()->with('success', 'Status tiket berhasil diperbarui.');
     }
 
     public function export(Request $request)
     {
-        $user = Auth::user();
+        Gate::authorize('export-ticket-reports');
 
-        if (! $user->isAdmin() && ! $user->isSupervisor()) {
-            abort(403);
-        }
-
+        $user  = Auth::user();
         $query = Ticket::query()->with(['category', 'priority', 'creator', 'assignedAgent']);
 
         if ($user->isSupervisor()) {
@@ -346,7 +287,7 @@ class TicketController extends Controller
             $query->whereDate('created_at', '<=', $request->to_date);
         }
 
-        $tickets  = $query->orderBy('created_at', 'desc')->get();
+        $tickets  = $query->orderBy('created_at', 'desc')->lazy();
         $filename = 'tickets-' . now()->format('Ymd-His') . '.csv';
 
         $callback = function () use ($tickets) {
@@ -389,17 +330,14 @@ class TicketController extends Controller
             'agent_id' => ['required', 'exists:users,id'],
         ]);
 
-        $oldAgentName = $ticket->assignedAgent?->name;
-
-        $ticket->update([
-            'assigned_agent_id' => $request->agent_id,
-            'status'            => $ticket->status === 'Open' ? 'Assigned' : $ticket->status,
-        ]);
-
         $agent = User::find($request->agent_id);
-        $agent?->notify(new TicketAssigned($ticket->fresh()));
 
-        ActivityLogger::log($ticket, 'ticket_assigned', $oldAgentName, $agent?->name);
+        if (! $agent?->isAgent()) {
+            return back()->withErrors(['agent_id' => 'User yang dipilih bukan Agent.']);
+        }
+
+        $this->ticketService->assignTicket($ticket, $agent);
+        $this->ticketService->notifyAssigned($ticket, $agent);
 
         return back()->with('success', 'Tiket berhasil di-assign ke agent.');
     }

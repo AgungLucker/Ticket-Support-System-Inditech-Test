@@ -19,7 +19,7 @@ class TicketServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->ticketService = new TicketService();
+        $this->ticketService = app(TicketService::class);
     }
 
     public function test_ticket_number_generator_creates_unique_sequential_format()
