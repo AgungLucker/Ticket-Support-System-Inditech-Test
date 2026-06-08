@@ -5,6 +5,7 @@ namespace Tests\Feature\Ticket;
 use App\Models\Category;
 use App\Models\Priority;
 use App\Models\SlaRule;
+use App\Models\Team;
 use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -150,6 +151,53 @@ class TicketWorkflowTest extends TestCase
 
         $this->actingAs($customer)
             ->post(route('tickets.assign', $ticket), ['agent_id' => $agent->id])
+            ->assertForbidden();
+    }
+
+    // =========================================================
+    // Supervisor Reassign
+    // =========================================================
+
+    public function test_supervisor_bisa_reassign_tiket_dalam_timnya(): void
+    {
+        $team       = Team::factory()->create();
+        $supervisor = User::factory()->supervisor()->create(['team_id' => $team->id]);
+        $agent1     = User::factory()->agent()->create(['team_id' => $team->id]);
+        $agent2     = User::factory()->agent()->create(['team_id' => $team->id]);
+        $customer   = User::factory()->customer()->create();
+
+        $ticket = Ticket::factory()->recycle([$customer])->create([
+            'assigned_agent_id' => $agent1->id,
+            'status'            => 'Assigned',
+        ]);
+
+        $this->actingAs($supervisor)
+            ->post(route('tickets.assign', $ticket), ['agent_id' => $agent2->id])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('tickets', [
+            'id'                => $ticket->id,
+            'assigned_agent_id' => $agent2->id,
+        ]);
+    }
+
+    public function test_supervisor_tidak_bisa_assign_tiket_di_luar_timnya(): void
+    {
+        $teamA      = Team::factory()->create();
+        $teamB      = Team::factory()->create();
+        $supervisor = User::factory()->supervisor()->create(['team_id' => $teamA->id]);
+        $agentA     = User::factory()->agent()->create(['team_id' => $teamA->id]);
+        $agentB     = User::factory()->agent()->create(['team_id' => $teamB->id]);
+        $customer   = User::factory()->customer()->create();
+
+        // Ticket belongs to Team B — supervisor of Team A cannot touch it
+        $ticket = Ticket::factory()->recycle([$customer])->create([
+            'assigned_agent_id' => $agentB->id,
+            'status'            => 'Assigned',
+        ]);
+
+        $this->actingAs($supervisor)
+            ->post(route('tickets.assign', $ticket), ['agent_id' => $agentA->id])
             ->assertForbidden();
     }
 

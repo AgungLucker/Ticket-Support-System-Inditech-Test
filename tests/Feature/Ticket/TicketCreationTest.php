@@ -5,6 +5,7 @@ namespace Tests\Feature\Ticket;
 use App\Models\Category;
 use App\Models\Priority;
 use App\Models\Role;
+use App\Models\SlaRule;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -47,25 +48,70 @@ class TicketCreationTest extends TestCase
         ]);
     }
 
-    public function test_attachment_upload_validates_file_size_and_type()
+    public function test_attachment_upload_validates_file_size()
     {
-        Storage::fake('public');
+        Storage::fake('local');
 
         $category = Category::factory()->create();
         $priority = Priority::factory()->create();
 
-        // Invalid size (3MB) and invalid type (txt)
-        $invalidFile = UploadedFile::fake()->create('document.txt', 3072);
+        // Valid type (jpg) but exceeds 2MB limit
+        $oversizedFile = UploadedFile::fake()->create('screenshot.jpg', 3072);
 
-        $response = $this->actingAs($this->customer)->post(route('tickets.store'), [
-            'title' => 'Test',
+        $this->actingAs($this->customer)->post(route('tickets.store'), [
+            'title'       => 'Test',
             'description' => 'Test desc',
             'category_id' => $category->id,
             'priority_id' => $priority->id,
-            'attachments' => [$invalidFile],
+            'attachments' => [$oversizedFile],
+        ])->assertSessionHasErrors(['attachments.0']);
+    }
+
+    public function test_attachment_upload_validates_file_type()
+    {
+        Storage::fake('local');
+
+        $category = Category::factory()->create();
+        $priority = Priority::factory()->create();
+
+        // Valid size but disallowed type (txt)
+        $invalidTypeFile = UploadedFile::fake()->create('notes.txt', 512);
+
+        $this->actingAs($this->customer)->post(route('tickets.store'), [
+            'title'       => 'Test',
+            'description' => 'Test desc',
+            'category_id' => $category->id,
+            'priority_id' => $priority->id,
+            'attachments' => [$invalidTypeFile],
+        ])->assertSessionHasErrors(['attachments.0']);
+    }
+
+    public function test_sla_due_date_is_set_when_ticket_is_created()
+    {
+        $priority = Priority::factory()->create();
+        SlaRule::create([
+            'priority_id'            => $priority->id,
+            'response_time_hours'    => 4,
+            'resolution_time_hours'  => 24,
+        ]);
+        $category = Category::factory()->create();
+
+        $this->actingAs($this->customer)->post(route('tickets.store'), [
+            'title'       => 'Test SLA',
+            'description' => 'Cek due_at terisi otomatis',
+            'category_id' => $category->id,
+            'priority_id' => $priority->id,
         ]);
 
-        $response->assertSessionHasErrors(['attachments.0']);
+        $ticket = \App\Models\Ticket::where('title', 'Test SLA')->first();
+        $this->assertNotNull($ticket->due_at);
+        $this->assertNotNull($ticket->response_due_at);
+        // due_at should be ~24 hours from now
+        $this->assertEqualsWithDelta(
+            now()->addHours(24)->timestamp,
+            $ticket->due_at->timestamp,
+            60
+        );
     }
 
     public function test_attachment_upload_saves_valid_files()
