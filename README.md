@@ -14,26 +14,30 @@ Authorization is enforced at the policy layer rather than hidden behind UI condi
 
 Authorization is implemented through Laravel Policies and Gates, enforced on every controller action.
 
-**Customer** creates and views only their own tickets, posts public comments, and can reopen a resolved or closed ticket. **Agent** works only on tickets assigned to them, updates status within allowed transitions, and can write internal notes invisible to the customer. **Supervisor** manages tickets scoped to agents in their team, can reassign tickets, and monitors team-level statistics on the dashboard. **Admin** has full system access and bypasses ticket-level policy checks via the `before()` hook in `TicketPolicy`.
+**Customer** creates and views only their own tickets, posts public comments, and can reopen a resolved or closed ticket. **Agent** works only on tickets assigned to them, updates status within allowed transitions, and can write internal notes invisible to the customer. **Supervisor** manages tickets scoped to agents in their team, can reassign tickets, and monitors team-level statistics on the dashboard. **Admin** has full system access and bypasses ticket-level policy checks via the before() hook in TicketPolicy.
 
-### Ticket Status Workflow
+### Ticket Status and SLA Workflow
 
-Eight statuses with controlled transitions managed by `TicketStatusService`:
+Eight statuses with controlled transitions managed by TicketStatusService:
 
 ```
-Open → Assigned → In Progress → Resolved → Closed
-              ↓                       ↑
-          Escalated              Reopened
-                     Waiting for Customer
+Open                 → Assigned, Closed
+Assigned             → In Progress, Escalated
+In Progress          → Waiting for Customer, Resolved, Escalated
+Waiting for Customer → In Progress, Resolved
+Resolved             → Closed, Reopened
+Closed               → Reopened
+Reopened             → Assigned, In Progress
+Escalated            → In Progress, Resolved
 ```
 
-The service is the central place that determines which transitions are valid and which roles can trigger them, keeping the logic out of individual controllers. Timestamps (`resolved_at`, `closed_at`) are set and cleared automatically when the status changes.
+The service is the central place that determines which transitions are valid and which roles can trigger them, keeping the logic out of individual controllers. Timestamps (resolved_at, closed_at) are set and cleared automatically when the status changes.
 
 ### SLA Rules and Overdue Detection
 
-SLA due dates are calculated automatically when a ticket is created, based on the priority's configured resolution and response time. The `TicketService` looks up the SLA rule for the ticket's priority and sets `due_at` and `response_due_at` accordingly.
+SLA due dates are calculated automatically when a ticket is created, based on the priority's configured resolution and response time. TicketService looks up the SLA rule for the ticket's priority and sets due_at and response_due_at accordingly.
 
-The `tickets:check-overdue` Artisan command flags overdue tickets and notifies Supervisors and Admins. It is designed to run on a schedule. Overdue tickets are shown on all role dashboards.
+The tickets:check-overdue Artisan command flags overdue tickets and notifies Supervisors and Admins. It is designed to run on a schedule. Overdue tickets are shown on all role dashboards.
 
 ### Comments and Internal Notes
 
@@ -41,13 +45,13 @@ The comment system distinguishes between public comments (visible to all parties
 
 ### Attachments
 
-Files can be attached to tickets and comments using a polymorphic relationship. Uploaded files are stored on the public disk and file access is controlled by `AttachmentPolicy`, which checks whether the user has permission to view the associated ticket before serving the file.
+Files can be attached to tickets and comments using a polymorphic relationship. Uploaded files are stored on the public disk and file access is controlled by AttachmentPolicy, which checks whether the user has permission to view the associated ticket before serving the file.
 
 Allowed types: jpg, jpeg, png, pdf, doc, docx, xls, xlsx. Maximum size: 2 MB per file. Stored fields include original filename, generated filename, MIME type, file size, and uploader ID.
 
 ### Activity Log
 
-Every significant action on a ticket is recorded: creation, status changes, assignment and reassignment, comments and internal notes, attachment uploads, and SLA overdue events. Logs store the actor, action, old value, new value, and timestamp. The `ActivityLogger` static helper centralizes all log writes so the format stays consistent across the codebase.
+Every significant action on a ticket is recorded: creation, status changes, assignment and reassignment, comments and internal notes, attachment uploads, and SLA overdue events. Logs store the actor, action, old value, new value, and timestamp. The ActivityLogger static helper centralizes all log writes so the format stays consistent across the codebase.
 
 ### Notifications
 
@@ -62,7 +66,7 @@ Sent via email and stored in the database (visible in the notification bell in t
 | Ticket escalated | Supervisors and Admins |
 | SLA overdue | Supervisors and Admins |
 
-`TicketCreated` is queued via `ShouldQueue`. Queue driver: database.
+TicketCreated is queued via ShouldQueue. Queue driver: database.
 
 ### REST API
 
@@ -219,11 +223,11 @@ Implementing the SLA mechanism. There are two due dates to track, resolution and
 
 **What shortcuts were taken?**
 
-`ActivityLogger` is a static helper instead of an injectable service, which is convenient but harder to mock in tests. The overdue command processes all overdue tickets in a single pass instead of batching them into separate jobs.
+ActivityLogger is a static helper instead of an injectable service, which is convenient but harder to mock in tests. The overdue command processes all overdue tickets in a single pass instead of batching them into separate jobs.
 
 **What would be fixed with more time?**
 Build a restore UI for soft-deleted master data, optimistic locking on status updates, and end-to-end tests with Laravel Dusk.
 
 **The most cursed code that still works?**
 
-The overdue count query is written almost identically in three separate `DashboardService` methods. It should have been extracted into a private helper method, but it still works.
+The overdue count query is written almost identically in three separate DashboardService methods. It should have been extracted into a private helper method, but it still works.
