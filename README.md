@@ -1,58 +1,229 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Ticket Support System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A role-based support ticket management system built with Laravel 11 as a project-based internship test at Inditech. Customers can submit tickets, Agents handle the customer's ticket, Supervisors coordinate the teams of agents, and Admins manage everything from users to SLA rules. The system enforces strict authorization boundaries, tracks the full ticket lifecycle with auditable activity logs, and delivers async notifications through Laravel Queues.
 
-## About Laravel
+## Project Overview
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Ticket Support System is a support desk application for managing customer support requests from creation to resolution. The system is organized around four roles with clearly separated responsibilities: Customers open tickets and follow conversations, Agents work on tickets assigned to them, Supervisors monitor their team's workload and escalations, and Administrators have full operational control over the entire system including users, teams, categories, priorities, SLA rules, and all tickets.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Authorization is enforced at the policy layer rather than hidden behind UI conditionals, status transitions are centrally validated so the workflow cannot be bypassed by crafted requests, and all significant actions on a ticket are recorded in an activity log.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Features
 
-## Learning Laravel
+### Role-Based Access Control
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Authorization is implemented through Laravel Policies and Gates, enforced on every controller action.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+**Customer** creates and views only their own tickets, posts public comments, and can reopen a resolved or closed ticket. **Agent** works only on tickets assigned to them, updates status within allowed transitions, and can write internal notes invisible to the customer. **Supervisor** manages tickets scoped to agents in their team, can reassign tickets, and monitors team-level statistics on the dashboard. **Admin** has full system access and bypasses ticket-level policy checks via the `before()` hook in `TicketPolicy`.
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+### Ticket Status Workflow
 
-## Agentic Development
+Eight statuses with controlled transitions managed by `TicketStatusService`:
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```
+Open → Assigned → In Progress → Resolved → Closed
+              ↓                       ↑
+          Escalated              Reopened
+                     Waiting for Customer
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+The service is the central place that determines which transitions are valid and which roles can trigger them, keeping the logic out of individual controllers. Timestamps (`resolved_at`, `closed_at`) are set and cleared automatically when the status changes.
 
-## Contributing
+### SLA Rules and Overdue Detection
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+SLA due dates are calculated automatically when a ticket is created, based on the priority's configured resolution and response time. The `TicketService` looks up the SLA rule for the ticket's priority and sets `due_at` and `response_due_at` accordingly.
 
-## Code of Conduct
+The `tickets:check-overdue` Artisan command flags overdue tickets and notifies Supervisors and Admins. It is designed to run on a schedule. Overdue tickets are shown on all role dashboards.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Comments and Internal Notes
 
-## Security Vulnerabilities
+The comment system distinguishes between public comments (visible to all parties including the Customer) and internal notes (visible only to Agents, Supervisors, and Admins). The separation is enforced at the query level in both the web views and the REST API, not just by hiding elements in the UI.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Attachments
 
-## License
+Files can be attached to tickets and comments using a polymorphic relationship. Uploaded files are stored on the public disk and file access is controlled by `AttachmentPolicy`, which checks whether the user has permission to view the associated ticket before serving the file.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Allowed types: jpg, jpeg, png, pdf, doc, docx, xls, xlsx. Maximum size: 2 MB per file. Stored fields include original filename, generated filename, MIME type, file size, and uploader ID.
+
+### Activity Log
+
+Every significant action on a ticket is recorded: creation, status changes, assignment and reassignment, comments and internal notes, attachment uploads, and SLA overdue events. Logs store the actor, action, old value, new value, and timestamp. The `ActivityLogger` static helper centralizes all log writes so the format stays consistent across the codebase.
+
+### Notifications
+
+Sent via email and stored in the database (visible in the notification bell in the topbar):
+
+| Event | Recipients |
+|---|---|
+| Ticket created | All Admins |
+| Ticket assigned | Assigned Agent |
+| New comment | Ticket creator and assigned agent |
+| Ticket resolved | Ticket creator |
+| Ticket escalated | Supervisors and Admins |
+| SLA overdue | Supervisors and Admins |
+
+`TicketCreated` is queued via `ShouldQueue`. Queue driver: database.
+
+### REST API
+
+Authenticated via Laravel Sanctum bearer tokens. Token expiry: 24 hours. Rate limit: 60 requests per minute per user or IP.
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/login` | Obtain bearer token |
+| DELETE | `/api/logout` | Revoke token |
+| GET | `/api/tickets` | List tickets (role-scoped) |
+| POST | `/api/tickets` | Create ticket |
+| GET | `/api/tickets/{ticket}` | View ticket detail |
+| PATCH | `/api/tickets/{ticket}/status` | Update status |
+| POST | `/api/tickets/{ticket}/assign` | Assign to agent |
+| POST | `/api/tickets/{ticket}/comments` | Add comment or internal note |
+
+## Installation
+
+### 1. Clone and install dependencies
+
+```bash
+git clone https://github.com/AgungLucker/Ticket-Support-System-Inditech-Test.git
+cd ticket-support-system
+
+composer install
+npm install
+```
+
+### 2. Configure the environment
+
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+
+### 3. Configure the database
+
+**Option A: SQLite (quick local setup)**
+
+No additional setup needed. SQLite is preconfigured in `.env.example`.
+
+**Option B: MySQL or MariaDB**
+
+Create a database, then update `.env`:
+
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=ticket_support
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+### 4. Configure mail (for email notifications)
+
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=sandbox.smtp.mailtrap.io
+MAIL_PORT=2525
+MAIL_USERNAME=your_mailtrap_username
+MAIL_PASSWORD=your_mailtrap_password
+MAIL_FROM_ADDRESS="noreply@ticketsystem.com"
+MAIL_FROM_NAME="Ticket Support System"
+```
+
+Without a configured mail driver, email notifications will fail silently. The in-app notification bell works regardless.
+
+### 5. Run migrations and seed demo data
+
+```bash
+php artisan migrate:fresh --seed
+```
+
+### 6. Link public storage
+
+```bash
+php artisan storage:link
+```
+
+Required for ticket and comment attachments stored on the public disk.
+
+### 7. Build frontend assets
+
+```bash
+npm run build
+```
+
+For active development with hot reload:
+
+```bash
+npm run dev
+```
+
+### 8. Start the development server
+
+```bash
+php artisan serve
+```
+
+Application is available at `http://127.0.0.1:8000`.
+
+## Running Background Workers
+
+The system uses Laravel Queues for async email notifications. Run the queue worker in a separate terminal:
+
+```bash
+php artisan queue:work
+```
+
+The SLA overdue checker is designed to run on a schedule. To configure it, add the Laravel scheduler to your system crontab:
+
+```
+* * * * * cd /path-to-project && php artisan schedule:run >> /dev/null 2>&1
+```
+
+To run it manually for local verification:
+
+```bash
+php artisan tickets:check-overdue
+```
+
+## Running Tests
+
+```bash
+php artisan test
+```
+
+102 tests covering authentication, ticket CRUD, role-based access control, status workflow transitions, SLA logic, file validation, internal notes protection, assignment rules, and API endpoints.
+
+## Demo Credentials
+
+| Role | Email | Password |
+|---|---|---|
+| Admin | admin@admin.com | password |
+| Supervisor | supervisor@admin.com | password |
+| Agent | agent@admin.com | password |
+| Customer | customer@demo.com | password |
+
+Additional numbered users per role are also seeded (e.g. `admin1@ticket.com` / `admin1234`, `supervisor1@ticket.com` / `supervisor1234`) for broader testing. Factory-seeded users use password `password`.
+
+## Known Limitations
+
+1. **CSV export is synchronous.** For large ticket volumes this runs in the request cycle and may time out. Ideally it should be queued.
+2. **No optimistic locking on status updates.** If two users update the same ticket at the same time, the last update overwrites the previous one.
+3. **API does not support file uploads.** Attachments can only be added through the web UI.
+4. **Team uniqueness is UI-enforced only.** The one-supervisor-per-team constraint is validated in the form layer but not enforced with a database unique constraint.
+
+## Developer Confession
+
+**What was the hardest part?**
+
+Implementing the SLA mechanism. There are two due dates to track, resolution and response, each calculated from different reference points, and overdue detection had to work correctly across all role dashboards without loading entire ticket collections into PHP.
+
+**What shortcuts were taken?**
+
+`ActivityLogger` is a static helper instead of an injectable service, which is convenient but harder to mock in tests. The overdue command processes all overdue tickets in a single pass instead of batching them into separate jobs.
+
+**What would be fixed with more time?**
+Build a restore UI for soft-deleted master data, optimistic locking on status updates, and end-to-end tests with Laravel Dusk.
+
+**The most cursed code that still works?**
+
+`DashboardController` dispatching to four role-specific methods, each calling `DashboardService` with slightly different parameters depending on the role. The code works and already tested, but it is a lot of near-identical code paths doing almost the same thing.
