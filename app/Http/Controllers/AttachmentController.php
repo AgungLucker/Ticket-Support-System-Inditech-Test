@@ -12,20 +12,12 @@ class AttachmentController extends Controller
     {
         Gate::authorize('view', $attachment);
 
-        // Cek local disk 
-        if (Storage::exists($attachment->path)) {
-            return Storage::response($attachment->path, $attachment->original_name, [
-                'Content-Type' => $attachment->mime_type,
-            ]);
+        if (!Storage::disk('public')->exists($attachment->path)) {
+            abort(404);
         }
 
-        // Fallback
-        if (Storage::disk('public')->exists($attachment->path)) {
-            return Storage::disk('public')->response($attachment->path, $attachment->original_name, [
-                'Content-Type' => $attachment->mime_type,
-            ]);
-        }
-
-        abort(404);
+        return Storage::disk('public')->response($attachment->path, $attachment->original_name, [
+            'Content-Type' => $attachment->mime_type,
+        ]);
     }
 }

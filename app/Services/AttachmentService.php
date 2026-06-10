@@ -18,7 +18,7 @@ class AttachmentService
             if (! ($file instanceof UploadedFile) || ! $file->isValid()) {
                 continue;
             }
-            $path = $file->store('attachments');
+            $path = $file->store('attachments', 'public');
             $attachable->attachments()->create([
                 'path'          => $path,
                 'original_name' => $file->getClientOriginalName(),
