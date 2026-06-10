@@ -226,4 +226,4 @@ Build a restore UI for soft-deleted master data, optimistic locking on status up
 
 **The most cursed code that still works?**
 
-`DashboardController` dispatching to four role-specific methods, each calling `DashboardService` with slightly different parameters depending on the role. The code works and already tested, but it is a lot of near-identical code paths doing almost the same thing.
+The overdue count query is written almost identically in three separate `DashboardService` methods. It should have been extracted into a private helper method, but it still works.
